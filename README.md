@@ -33,6 +33,9 @@ M5StackToio はソニー・インタラクティブエンタテインメント�
   * [`onMotion()` メソッド (モーションセンサーのコールバックをセット)](#ToioCore-onMotion-method)
   * [`controlMotor()` メソッド (モーター制御)](#ToioCore-controlMotor-method)
   * [`drive()` メソッド (運転)](#ToioCore-drive-method)
+  * [`getIDReaderData()` メソッド (ID読み取りセンサーの状態、マット上の位置情報を取得)](#ToioCore-getIDReaderData-method)
+  * [`onIDReaderData()` メソッド (ID読み取りセンサーのコールバックをセット)](#ToioCore-onIDReaderData-method)
+
 * [6. サンプルスケッチ](#Sample-Sketches)
 * [リリースノート](#Release-Note)
 * [リファレンス](#References)
@@ -955,6 +958,182 @@ toiocore->drive(0, 0);
 ```
 
 もし戦車のように左右のタイヤをそれぞれ反対方向に回転させて本体の中心を軸にくるくる回る動きを実現したい場合は、前述の [`controlMotor()`](#ToioCore-controlMotor-method) メソッドを使ってください。
+
+### <a id="ToioCore-getIDReaderData-method">✔ `getIDReaderData()` メソッド (ID読み取りセンサーの状態、マット上の位置情報を取得)</a>
+
+toio コア キューブのID読み取りセンサーの状態を取得します。キューブがマット上にあるとき、マットからセンサーで読み取った値(ID)が取得できます。マットから読み取ることができるIDには、マット上の座標値を表すポジションIDと、キューブが乗っている領域を表すスタンダードIDがあり、どちらかの情報が返されます。
+
+#### プロトタイプ宣言
+
+```c++
+struct ToioCoreIDData {
+  ToioCoreIDType type;
+  ToioCorePositionIDData position;
+  ToioCoreStandardIDData standard;
+};
+
+// Position IDの場合のデータ
+struct ToioCorePositionIDData {
+  uint16_t cubePosX;
+  uint16_t cubePosY;
+  uint16_t cubeAngleDegree;
+  uint16_t sensorPosX;
+  uint16_t sensorPosY;
+  uint16_t sensorAngleDegree;
+};
+
+// Standard IDの場合のデータ
+struct ToioCoreStandardIDData {
+  uint32_t standardID;
+  uint16_t cubeAngleDegree;
+};
+
+ToioCoreIDData getIDReaderData();
+```
+
+#### 引数
+
+なし
+
+#### 戻値
+
+`ToioCoreIDData` 型の構造体が返されます。各メンバーの意味は以下の通りです。
+
+名前       | 型        | 説明
+:----------|:----------|:------------------------
+`type`     | `ToioCoreIDType`    | IDタイプ (`ToioCoreIDTypeNone`: 読み取れなかった場合, `ToioCoreIDTypePosition`: ポジションIDの場合, `ToioCoreIDTypeStandard`: スタンダードIDの場合) 
+`position`    | `ToioCorePositionIDData`    | ポジションID情報
+`standard`     | `ToioCoreStandardIDData`    | スタンダードID情報
+
+type が ToioCoreIDTypePosition の場合、position 値には、`ToioCorePositionIDData` 型の構造体が返されます。各メンバーの意味は以下の通りです。
+
+
+名前       | 型        | 説明
+:----------|:----------|:------------------------
+`cubePosX`     | `uint16_t`    | キューブの中心の X 座標値
+`cubePosY`     | `uint16_t`    | キューブの中心の Y 座標値
+`cubeAngleDegree`     | `uint16_t`    | キューブの角度（度）
+`sensorPosX`     | `uint16_t`    | 読み取りセンサーの中心の X 座標値
+`sensorPosY`     | `uint16_t`    | 読み取りセンサーの中心の Y 座標値
+`sensorAngleDegree`     | `uint16_t`    | 読み取りセンサーの角度（度）
+
+type が ToioCoreIDTypeStandard の場合、standard 値には、`ToioCoreStandardIDData` 型の構造体が返されます。各メンバーの意味は以下の通りです。
+
+名前       | 型        | 説明
+:----------|:----------|:------------------------
+`standardID`     | `uint32_t`    | Standard ID の値
+`cubeAngleDegree`     | `uint16_t`    | キューブの角度（度）
+
+
+position および standard の値の詳細仕様は、[toio コア キューブ通信仕様](https://toio.github.io/toio-spec/docs/ble_id)をご覧ください。
+
+Standard IDの値については[Standard ID 一覧](https://toio.github.io/toio-spec/docs/hardware_standard_id)をご覧ください。
+
+#### コードサンプル
+
+```c++
+ToioCoreIDData data = toiocore->getIDReaderData();
+if (data.type == ToioCoreIDTypePosition) {
+  Serial.println("posX: " + String(data.position.cubePosX)
+  + " posY: " + String(data.position.cubePosY)
+  + " angle: " + String(data.position.cubeAngleDegree));
+}
+else if (data.type == ToioCoreIDTypeStandard) {
+  Serial.println("Standard ID: " + String(data.standard.standardID));
+}
+else {
+  Serial.println("no id found.");
+}
+```
+
+### <a id="ToioCore-onIDReaderData-method">✔ `onIDReaderData()` メソッド (ID読み取りセンサーのコールバックをセット)</a>
+
+toio コア キューブのID読み取りイベントのコールバックをセットします。IDが読み取られている間一定時間間隔で、およびID読み取りが終了（失敗）したとき、引数に指定したコールバック関数を呼び出します。コールバック関数には読み取られたIDを表す構造体が引き渡されます。
+
+#### プロトタイプ宣言
+
+```c++
+struct ToioCoreIDData {
+  ToioCoreIDType type;
+  ToioCorePositionIDData position;
+  ToioCoreStandardIDData standard;
+};
+
+// Position IDの場合のデータ
+struct ToioCorePositionIDData {
+  uint16_t cubePosX;
+  uint16_t cubePosY;
+  uint16_t cubeAngleDegree;
+  uint16_t sensorPosX;
+  uint16_t sensorPosY;
+  uint16_t sensorAngleDegree;
+};
+
+// Standard IDの場合のデータ
+struct ToioCoreStandardIDData {
+  uint32_t standardID;
+  uint16_t cubeAngleDegree;
+};
+
+typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
+void onIDReaderData(OnIDDataCallback cb);
+```
+
+#### 引数
+
+No. | 変数名   | 型                 | 必須   | 説明
+:---|:--------|:-------------------|:-------|:-------------
+1   | `cb`    | `OnIDDataCallback` | ✔     | コールバック関数
+
+#### コードサンプル
+
+以下のサンプルスケッチは、IDが読み取られたとき、またはID読み取りが終了（失敗）したとき、その都度、その状態を出力します。
+
+コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
+
+```c++
+#include <M5Stack.h>
+#include <Toio.h>
+
+// Toio オブジェクト生成
+Toio toio;
+
+void setup() {
+  // M5Stack の初期化
+  M5.begin();
+  M5.Power.begin();
+
+  // toio コア キューブのスキャン開始
+  std::vector<ToioCore*> toiocore_list = toio.scan(3);
+  if (toiocore_list.size() == 0) {
+    return;
+  }
+  ToioCore* toiocore = toiocore_list.at(0);
+
+  // BLE 接続
+  toiocore->connect();
+
+  // ID読み取りイベントのコールバックをセット
+  toiocore->onIDReaderData([](ToioCoreIDData data) {
+    if (data.type == ToioCoreIDTypePosition) {
+      Serial.println("posX: " + String(data.position.cubePosX)
+      + " posY: " + String(data.position.cubePosY)
+      + " angle: " + String(data.position.cubeAngleDegree));
+    }
+    else if (data.type == ToioCoreIDTypeStandard) {
+      Serial.println("Standard ID: " + String(data.standard.standardID));
+    }
+    else {
+      Serial.println("no id found.");
+    }
+  });
+}
+
+void loop() {
+  // コールバックを使う場合には必ず Toio オブジェクトの loop() を呼び出す
+  toio.loop();
+}
+```
 
 ---------------------------------------
 ## <a id="Sample-Sketches">6. サンプルスケッチ</a>
