@@ -25,10 +25,50 @@ struct ToioCoreMotionData {
   uint8_t attitude;
 };
 
+// ID Readerで読み取ったIDのタイプ
+enum ToioCoreIDType {
+  ToioCoreIDTypeNone = 0,     // 読み取れなかった、または初期値
+  ToioCoreIDTypePosition = 1, // Position ID
+  ToioCoreIDTypeStandard = 2  // Standard ID
+};
+
+// Position IDの場合のデータ
+struct ToioCorePositionIDData {
+  uint16_t cubePosX;
+  uint16_t cubePosY;
+  uint16_t cubeAngleDegree;
+  uint16_t sensorPosX;
+  uint16_t sensorPosY;
+  uint16_t sensorAngleDegree;
+};
+
+// Standard IDの場合のデータ
+struct ToioCoreStandardIDData {
+  uint32_t standardID;
+  uint16_t cubeAngleDegree;
+};
+
+// ID Readerで読み取った結果のデータ構造
+// Position IDの場合とStandard IDの場合があり、それぞれのパラメータにデータが入る
+struct ToioCoreIDData {
+  ToioCoreIDData() : type(ToioCoreIDTypeNone) {}
+  ToioCoreIDData(
+    ToioCoreIDType type,
+    ToioCorePositionIDData position,
+    ToioCoreStandardIDData standard)
+    : type(type),
+    position(position),
+    standard(standard) {}
+  ToioCoreIDType type;
+  ToioCorePositionIDData position; // Position IDの場合のデータ
+  ToioCoreStandardIDData standard; // Standard IDの場合のデータ
+};
+
 typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
 typedef std::function<void(uint8_t level)> OnBatteryCallback;
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
+typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
 
 // ---------------------------------------------------------------
 // ToioCore クラス
@@ -43,6 +83,7 @@ class ToioCore {
     const char* _TOIO_CHAR_UUID_MOTION = "10b20106-5b3b-4571-9508-cf3efcd7bbae";
     const char* _TOIO_CHAR_UUID_CONF   = "10b201ff-5b3b-4571-9508-cf3efcd7bbae";
     const char* _TOIO_CHAR_UUID_MOTOR  = "10b20102-5b3b-4571-9508-cf3efcd7bbae";
+    const char* _TOIO_CHAR_UUID_ID_READER  = "10b20101-5b3b-4571-9508-cf3efcd7bbae";
 
     BLEAdvertisedDevice* _device;
     BLEClient* _client;
@@ -54,14 +95,23 @@ class ToioCore {
     BLERemoteCharacteristic* _char_motion;
     BLERemoteCharacteristic* _char_conf;
     BLERemoteCharacteristic* _char_motor;
+    BLERemoteCharacteristic* _char_id_reader;
 
     OnConnectionCallback _onconnection;
     OnButtonCallback _onbutton;
     OnBatteryCallback _onbattery;
     OnMotionCallback _onmotion;
+    OnIDDataCallback _on_id_reader;
 
   private:
     void _wait(const unsigned long msec);
+
+    // BLEのバイト配列からToioCoreIDDataに変換する。異常値の場合はfalseを返す
+    static bool _convertBLEBytesToIDData(const uint8_t *bytes, int length, ToioCoreIDData & id_data);
+    // BLEのバイト配列からToioCorePositionIDDataに変換する。
+    static void _convertBLEBytesToPositionIDData(const uint8_t *bytes, ToioCorePositionIDData & pos_data);
+    // BLEのバイト配列からToioCoreStandardIDDataに変換する。
+    static void _convertBLEBytesToStandardIDData(const uint8_t *bytes, ToioCoreStandardIDData & std_data);
 
   public:
     // コンストラクタ
@@ -138,6 +188,12 @@ class ToioCore {
 
     // 運転 (モーター制御をスロットルとステアリング操作に置き換える)
     void drive(int8_t throttle, int8_t steering);
+
+    // ID Reader の読み取り結果を取得
+    ToioCoreIDData getIDReaderData();
+
+    // ID Readerのコールバックをセット
+    void onIDReaderData(OnIDDataCallback cb);
 
     // Toio.cpp から呼ばれる (.ino からは直接呼ばない)
     void _loop();

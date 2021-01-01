@@ -26,6 +26,9 @@ static bool g_event_button_state = false;
 static bool g_event_motion_updated = false;
 static ToioCoreMotionData g_event_motion_data = {0x00, 0x00, 0x00, 0x00};
 
+static bool g_event_id_data_updated = false;
+static ToioCoreIDData g_event_id_data;
+
 // BLE 接続状態変化のコールバック
 class ToioClientCallback : public BLEClientCallbacks {
     void onConnect(BLEClient* client) {
@@ -51,6 +54,7 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_onbutton = nullptr;
   this->_onbattery = nullptr;
   this->_onmotion = nullptr;
+  this->_on_id_reader = nullptr;
 
   client->setClientCallbacks(new ToioClientCallback());
 }
@@ -162,6 +166,14 @@ bool ToioCore::connect() {
     return false;
   }
 
+  // IDリーダーの Characteristic を取得
+  this->_char_id_reader = service->getCharacteristic(this->_TOIO_CHAR_UUID_ID_READER);
+  if (this->_char_id_reader == nullptr) {
+    Serial.print("Failed to find the characteristic for the id reader: UUID=" + String(this->_TOIO_CHAR_UUID_ID_READER));
+    this->disconnect();
+    return false;
+  }
+
   // バッテリーイベントのコールバックをセット
   this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
     if (!g_current_client) {
@@ -205,6 +217,25 @@ bool ToioCore::connect() {
     g_event_motion_data.dtap = data[3];
     g_event_motion_data.attitude = data[4];
     g_event_motion_updated = true;
+  });
+
+  // IDリーダーイベントのコールバックをセット
+  this->_char_id_reader->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+    if (!g_current_client) {
+      return;
+    }
+    if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
+      // no data
+      g_event_id_data.type = ToioCoreIDTypeNone;
+      g_event_id_data_updated = true;
+      return;
+    }
+
+    if (!ToioCore::_convertBLEBytesToIDData(data, len, g_event_id_data)) {
+      // wrong data
+      return;
+    }
+    g_event_id_data_updated = true;
   });
 
   // 1000 ミリ秒待つ
@@ -488,6 +519,33 @@ void ToioCore::drive(int8_t throttle, int8_t steering) {
 }
 
 // ---------------------------------------------------------------
+// ID Readerの読み取り結果を取得
+// ---------------------------------------------------------------
+ToioCoreIDData ToioCore::getIDReaderData() {
+  ToioCoreIDData res;
+  if (!this->isConnected()) {
+    return res;
+  }
+  std::string data = this->_char_id_reader->readValue();
+  if (data.size() > 0 && data[0] == 0x03 || data[0] == 0x04) {
+    // no data
+    return res;
+  }
+  if (!_convertBLEBytesToIDData((const uint8_t *) data.c_str(), data.size(), res)) {
+    Serial.println("id data is wrong. type=" + String((int)data[0])+ " length=" + String(data.size()));
+    return res;
+  }
+  return res;
+}
+
+// ---------------------------------------------------------------
+// ID Readerのコールバックをセット
+// ---------------------------------------------------------------
+void ToioCore::onIDReaderData(OnIDDataCallback cb) {
+  this->_on_id_reader = cb;
+}
+
+// ---------------------------------------------------------------
 // Toio.cpp から呼ばれる (.ino からは直接呼ばない)
 // ---------------------------------------------------------------
 void ToioCore::_loop() {
@@ -535,6 +593,14 @@ void ToioCore::_loop() {
       g_event_motion_updated = false;
     }
   }
+
+  // ID読み取りセンサーイベント
+  if (g_event_id_data_updated) {
+    if (this->_on_id_reader) {
+      this->_on_id_reader(g_event_id_data);
+    }
+    g_event_id_data_updated = false;
+  }
 }
 
 // ---------------------------------------------------------------
@@ -545,4 +611,53 @@ void ToioCore::_wait(const unsigned long msec) {
   while (millis() < now + msec) {
     yield();
   }
+}
+
+// ---------------------------------------------------------------
+// ID ReaderのデータをBLEのbyte配列から取り出す
+// ---------------------------------------------------------------
+bool ToioCore::_convertBLEBytesToIDData(const uint8_t *bytes, int length, ToioCoreIDData & id_data) {
+    if (bytes[0] == 0x01) { // Position ID
+      if (length != 13) {
+        id_data.type = ToioCoreIDTypeNone;
+        return false;
+      }
+      id_data.type = ToioCoreIDTypePosition;
+      _convertBLEBytesToPositionIDData(bytes, id_data.position);
+      return true;
+    }
+    if (bytes[0] == 0x02) { // Standard ID
+      if (length != 7) {
+        id_data.type = ToioCoreIDTypeNone;
+        return false;
+      }
+      id_data.type = ToioCoreIDTypeStandard;
+      _convertBLEBytesToStandardIDData(bytes, id_data.standard);
+      return true;
+    }
+
+    id_data.type = ToioCoreIDTypeNone;
+    return false;
+}
+
+// ---------------------------------------------------------------
+// Position IDのデータをBLEのbyte配列から取り出す
+// ---------------------------------------------------------------
+void ToioCore::_convertBLEBytesToPositionIDData(const uint8_t *bytes, ToioCorePositionIDData & pos_data)
+{
+  pos_data.cubePosX = *(uint16_t *)&bytes[1];
+  pos_data.cubePosY = *(uint16_t *)&bytes[3];
+  pos_data.cubeAngleDegree = *(uint16_t *)&bytes[5];
+  pos_data.sensorPosX = *(uint16_t *)&bytes[7];
+  pos_data.sensorPosY = *(uint16_t *)&bytes[9];
+  pos_data.sensorAngleDegree = *(uint16_t *)&bytes[11];
+}
+
+// ---------------------------------------------------------------
+// Standard IDのデータをBLEのbyte配列から取り出す
+// ---------------------------------------------------------------
+void ToioCore::_convertBLEBytesToStandardIDData(const uint8_t *bytes, ToioCoreStandardIDData & std_data)
+{
+  std_data.standardID = *(uint32_t *)&bytes[1];
+  std_data.cubeAngleDegree = *(uint16_t *)&bytes[5];
 }
