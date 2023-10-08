@@ -3,6 +3,8 @@
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   https://github.com/futomi
+  Toio ID read support   https://github.com/mhama
+  Protocol v2.3.0 support  https://github.com/kenichi84 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -24,10 +26,13 @@ static bool g_event_button_updated = false;
 static bool g_event_button_state = false;
 
 static bool g_event_motion_updated = false;
-static ToioCoreMotionData g_event_motion_data = {0x00, 0x00, 0x00, 0x00};
+static ToioCoreMotionData g_event_motion_data = {0x00, 0x00, 0x00, 0x00, 0x00};
 
 static bool g_event_id_data_updated = false;
 static ToioCoreIDData g_event_id_data;
+
+static bool g_event_motor_updated = false;
+static ToioCoreMotorResponse g_event_motor_response = {0x00, 0x00, 0x00};
 
 // BLE 接続状態変化のコールバック
 class ToioClientCallback : public BLEClientCallbacks {
@@ -55,6 +60,7 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_onbattery = nullptr;
   this->_onmotion = nullptr;
   this->_on_id_reader = nullptr;
+  this->_onmotor = nullptr;
 
   client->setClientCallbacks(new ToioClientCallback());
 }
@@ -101,6 +107,8 @@ bool ToioCore::connect() {
 
   g_event_button_updated = false;
   g_event_button_state = false;
+  
+  g_event_motor_updated = false;
 
   // Service を取得
   BLERemoteService* service = this->_client->getService(this->_TOIO_SERVICE_UUID);
@@ -174,6 +182,7 @@ bool ToioCore::connect() {
     return false;
   }
 
+#if 0
   // バッテリーイベントのコールバックをセット
   this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
     if (!g_current_client) {
@@ -203,19 +212,19 @@ bool ToioCore::connect() {
     g_event_button_updated = true;
   });
 
-
   // モーションセンサーイベントのコールバックをセット
   this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
     if (!g_current_client) {
       return;
     }
-    if (len != 5) {
+    if (len != 6) {
       return;
     }
     g_event_motion_data.flat = data[1];
     g_event_motion_data.clash = data[2];
     g_event_motion_data.dtap = data[3];
     g_event_motion_data.attitude = data[4];
+    g_event_motion_data.shake = data[5];
     g_event_motion_updated = true;
   });
 
@@ -238,6 +247,24 @@ bool ToioCore::connect() {
     g_event_id_data_updated = true;
   });
 
+    // モーター制御応答イベントのコールバックをセット
+    USBSerial.println("register motor callback ");
+  this->_char_motor->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+    USBSerial.println("call motor callback " + String(len));
+    if (!g_current_client) {
+      return;
+    }
+    
+    if (len != 3) {
+      return;
+    }
+    g_event_motor_response.controlType = data[0];
+    g_event_motor_response.controlID = data[1];
+    g_event_motor_response.response = data[2];
+
+    g_event_motor_updated = true;
+  });
+#endif
   // 1000 ミリ秒待つ
   this->_wait(1000);
   return true;
@@ -341,7 +368,27 @@ uint8_t ToioCore::getBatteryLevel() {
 // バッテリーイベントのコールバックをセット
 // ---------------------------------------------------------------
 void ToioCore::onBattery(OnBatteryCallback cb) {
-  this->_onbattery = cb;
+  if (!this->isConnected()) {
+    if(cb != nullptr){
+      this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+        if (!g_current_client) {
+          return;
+        }
+        if (len != 1) {
+          return;
+        }
+        uint8_t level = data[0];
+        g_event_battery_level = level;
+        g_event_battery_updated = true;
+      });
+    } else {
+      this->_char_battery->registerForNotify(nullptr);
+    }
+    this->_onbattery = cb;
+  } else {
+    this->_onbattery = nullptr;
+  }
+  
 }
 
 // ---------------------------------------------------------------
@@ -363,25 +410,48 @@ bool ToioCore::getButtonState() {
 // ボタンイベントのコールバックをセット
 // ---------------------------------------------------------------
 void ToioCore::onButton(OnButtonCallback cb) {
-  this->_onbutton = cb;
+  if (!this->isConnected()) {
+    if(cb != nullptr){
+      this->_char_button->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+        if (!g_current_client) {
+          return;
+        }
+        if (len != 2) {
+          return;
+        }
+        if (data[0] != 0x01) {
+          return;
+        }
+        bool state = (data[1] == 0x80) ? true : false;
+        g_event_button_state = state;
+        g_event_button_updated = true;
+      });
+    } else {
+      this->_char_button->registerForNotify(nullptr);
+    }
+    this->_onbutton = cb;
+  } else {
+    this->_onbattery = nullptr;
+  }
 }
 
 // ---------------------------------------------------------------
 // モーションセンサーの状態を取得
 // ---------------------------------------------------------------
 ToioCoreMotionData ToioCore::getMotion() {
-  ToioCoreMotionData res = {0x00, 0x00, 0x00 , 0x00};
+  ToioCoreMotionData res = {0x00, 0x00, 0x00, 0x00, 0x00};
   if (!this->isConnected()) {
     return res;
   }
   std::string data = this->_char_motion->readValue();
-  if (data.size() != 5) {
+  if (data.size() != 6) {
     return res;
   }
   res.flat = data[1];
   res.clash = data[2];
   res.dtap = data[3];
   res.attitude = data[4];
+  res.shake = data[5];
   return res;
 }
 
@@ -389,7 +459,29 @@ ToioCoreMotionData ToioCore::getMotion() {
 // モーションセンサーのコールバックをセット
 // ---------------------------------------------------------------
 void ToioCore::onMotion(OnMotionCallback cb) {
-  this->_onmotion = cb;
+  if (!this->isConnected()) {
+    if(cb != nullptr){
+      this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+        if (!g_current_client) {
+          return;
+        }
+        if (len != 6) {
+          return;
+        }
+        g_event_motion_data.flat = data[1];
+        g_event_motion_data.clash = data[2];
+        g_event_motion_data.dtap = data[3];
+        g_event_motion_data.attitude = data[4];
+        g_event_motion_data.shake = data[5];
+        g_event_motion_updated = true;
+      });
+    } else {
+      this->_char_motion->registerForNotify(nullptr);
+    }
+    this->_onmotion = cb;
+  } else {
+    this->_onbattery = nullptr;
+  }
 }
 
 // ---------------------------------------------------------------
@@ -426,7 +518,7 @@ void ToioCore::setFlatThreshold(uint8_t deg) {
     deg = 45;
   }
   uint8_t data[3] = {0x05, 0x00, deg};
-  this->_char_sound->writeValue(data, 3, true);
+  this->_char_conf->writeValue(data, 3, true);
 }
 
 // ---------------------------------------------------------------
@@ -443,7 +535,7 @@ void ToioCore::setClashThreshold(uint8_t level) {
     level = 10;
   }
   uint8_t data[3] = {0x06, 0x00, level};
-  this->_char_sound->writeValue(data, 3, true);
+  this->_char_conf->writeValue(data, 3, true);
 }
 
 // ---------------------------------------------------------------
@@ -460,7 +552,7 @@ void ToioCore::setDtapThreshold(uint8_t level) {
     level = 7;
   }
   uint8_t data[3] = {0x17, 0x00, level};
-  this->_char_sound->writeValue(data, 3, true);
+  this->_char_conf->writeValue(data, 3, true);
 }
 
 // ---------------------------------------------------------------
@@ -519,6 +611,121 @@ void ToioCore::drive(int8_t throttle, int8_t steering) {
 }
 
 // ---------------------------------------------------------------
+// 目標指定付きモーター制御 (目標１つ)
+// ---------------------------------------------------------------
+void ToioCore::controlMotorWithTarget(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+  uint8_t maximum_speed, uint8_t speed_change_type,
+   uint16_t target_x, uint16_t target_y, uint16_t target_angle_degree, uint8_t target_angle_and_rotation_bits ) {
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t x[2] = { (uint8_t) (0xff & target_x), (uint8_t) (target_x >> 8)};
+  uint8_t y[2] = { (uint8_t) (0xff & target_y), (uint8_t) (target_y >> 8)};
+  uint8_t a[2] = { (uint8_t) (0xff & target_angle_degree), 
+  (uint8_t) ((0x1f & (target_angle_degree >> 8)) | (0xe0 &(target_angle_and_rotation_bits << 5)))};
+
+  uint8_t data[13] = {0x03, distinction, timeout, movement_type, maximum_speed, speed_change_type, 0x00, x[0], x[1], y[0], y[1], a[0], a[1]};
+  this->_char_motor->writeValue(data, 13, true);
+}
+
+// ---------------------------------------------------------------
+// 目標指定付きモーター制御 (複数目標)
+// ---------------------------------------------------------------
+void ToioCore::controlMotorWithMultipleTargets(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+  uint8_t maximum_speed, uint8_t speed_change_type, uint8_t addition_setting,
+   uint8_t target_num, ToioCoreTargetPos *target_positions) {
+  if (!this->isConnected()) {
+    return;
+  }
+
+  size_t data_size = 8 + 6 * target_num;
+  uint8_t *data = new uint8_t[data_size];
+  data[0] = 0x04; // control type
+  data[1] = distinction;
+  data[2] = timeout;
+  data[3] = movement_type;
+  data[4] = maximum_speed;
+  data[5] = speed_change_type;
+  data[6] = 0x00; // reserved
+  data[7] = addition_setting;
+
+  for(int i = 0 ; i < target_num; i++){
+    data[8 + i * 6]     = 0xff & target_positions[i].posX;
+    data[8 + i * 6 + 1] = target_positions[i].posX >> 8;
+    data[8 + i * 6 + 2] = 0xff & target_positions[i].posY;
+    data[8 + i * 6 + 3] = target_positions[i].posY >> 8;
+    data[8 + i * 6 + 4] = 0xff & target_positions[i].angleDegree;
+    data[8 + i * 6 + 5] = (0x1f & (target_positions[i].angleDegree >> 8)) | (0xef & (target_positions[i].angleAndRotation << 5));
+  }
+
+  this->_char_motor->writeValue(data, data_size, true);
+}
+
+// ---------------------------------------------------------------
+// 加速度指定モーター制御
+// ---------------------------------------------------------------
+void ToioCore::controlMotorWithAcceleration(uint8_t translational_speed, uint8_t acceleration,
+  uint16_t rotational_velocity, uint8_t rotational_direction, uint8_t travel_direction,
+  uint8_t priority, uint8_t duration){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t v[2] = { (uint8_t) (0xff &  rotational_velocity), (uint8_t) (rotational_velocity >> 8)};
+
+  uint8_t data[9] = {0x05, translational_speed, acceleration, v[0], v[1], rotational_direction, travel_direction, priority, duration};
+  this->_char_motor->writeValue(data, 9, true);
+
+}
+
+// ---------------------------------------------------------------
+// モーター制御の応答を取得
+// ---------------------------------------------------------------
+ToioCoreMotorResponse ToioCore::getMotor() {
+  ToioCoreMotorResponse res = {0x00, 0x00, 0x00};
+  if (!this->isConnected()) {
+    return res;
+  }
+  std::string data = this->_char_motor->readValue();
+  if (data.size() != 3) {
+    return res;
+  }
+  res.controlType = data[0];
+  res.controlID = data[1];
+  res.response = data[2];
+  return res;
+}
+// ---------------------------------------------------------------
+// モーター制御の応答イベントのコールバックをセット
+// ---------------------------------------------------------------
+void ToioCore::onMotor(OnMotorCallback cb) {
+  if (!this->isConnected()) {
+    if(cb != nullptr){
+      this->_char_motor->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+        USBSerial.println("call motor callback " + String(len));
+        if (!g_current_client) {
+          return;
+        }
+        
+        if (len != 3) {
+          return;
+        }
+        g_event_motor_response.controlType = data[0];
+        g_event_motor_response.controlID = data[1];
+        g_event_motor_response.response = data[2];
+
+        g_event_motor_updated = true;
+      });
+    } else {
+      this->_char_motor->registerForNotify(nullptr);
+    }
+    this->_onmotor = cb;
+  } else {
+    this->_onbattery = nullptr;
+  }
+}
+
+
+// ---------------------------------------------------------------
 // ID Readerの読み取り結果を取得
 // ---------------------------------------------------------------
 ToioCoreIDData ToioCore::getIDReaderData() {
@@ -542,7 +749,32 @@ ToioCoreIDData ToioCore::getIDReaderData() {
 // ID Readerのコールバックをセット
 // ---------------------------------------------------------------
 void ToioCore::onIDReaderData(OnIDDataCallback cb) {
-  this->_on_id_reader = cb;
+  if (!this->isConnected()) {
+    if(cb != nullptr){
+      this->_char_id_reader->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+        if (!g_current_client) {
+          return;
+        }
+        if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
+          // no data
+          g_event_id_data.type = ToioCoreIDTypeNone;
+          g_event_id_data_updated = true;
+          return;
+        }
+
+        if (!ToioCore::_convertBLEBytesToIDData(data, len, g_event_id_data)) {
+          // wrong data
+          return;
+        }
+        g_event_id_data_updated = true;
+      });
+    } else {
+      this->_char_id_reader->registerForNotify(nullptr);
+    }
+    this->_on_id_reader = cb;
+  } else {
+    this->_onbattery = nullptr;
+  }
 }
 
 // ---------------------------------------------------------------
@@ -600,6 +832,14 @@ void ToioCore::_loop() {
       this->_on_id_reader(g_event_id_data);
     }
     g_event_id_data_updated = false;
+  }
+
+  // モーター制御イベント
+  if (g_event_motor_updated) {
+    if (this->_onmotor) {
+      this->_onmotor(g_event_motor_response);
+      g_event_motor_updated = false;
+    }
   }
 }
 

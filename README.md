@@ -33,6 +33,10 @@ M5StackToio はソニー・インタラクティブエンタテインメント�
   * [`onMotion()` メソッド (モーションセンサーのコールバックをセット)](#ToioCore-onMotion-method)
   * [`controlMotor()` メソッド (モーター制御)](#ToioCore-controlMotor-method)
   * [`drive()` メソッド (運転)](#ToioCore-drive-method)
+  * [`controlMotorWithTarget()` メソッド (目標指定付きモーター制御 (目標１つ))](#ToioCore-controlMotorWithTarget-method)
+  * [`controlMotorWithMultipleTargets()` メソッド (目標指定付きモーター制御 (目標複数))](#ToioCore-controlMotorWithMultipleTargets-method)
+  * [` controlMotorWithAcceleration()` メソッド (加速度指定モーター制御)](#ToioCore-controlMotorWithAcceleration-method)
+  * [`onMotor()` メソッド (モーター制御のコールバックをセット)](#ToioCore-onMotor-method)
   * [`getIDReaderData()` メソッド (ID読み取りセンサーの状態、マット上の位置情報を取得)](#ToioCore-getIDReaderData-method)
   * [`onIDReaderData()` メソッド (ID読み取りセンサーのコールバックをセット)](#ToioCore-onIDReaderData-method)
 
@@ -62,7 +66,7 @@ Arduino IDE を起動し、メニューバーの `スケッチ` -> `ライブラ
 ```
 cd ~
 cd Documents\Arduino\libraries
-git clone https://github.com/futomi/M5StackToio.git
+git clone https://github.com/kenichi884/M5StackToio.git
 ```
 
 ---------------------------------------
@@ -958,6 +962,201 @@ toiocore->drive(0, 0);
 ```
 
 もし戦車のように左右のタイヤをそれぞれ反対方向に回転させて本体の中心を軸にくるくる回る動きを実現したい場合は、前述の [`controlMotor()`](#ToioCore-controlMotor-method) メソッドを使ってください。
+
+### <a id="ToioCore-controlMotorWithTarget-method">✔ `controlMotorWithTarget()` メソッド (目標指定付きモーター制御 (目標１つ))</a>
+
+目標地点を一つ指定してモーターを制御し、キューブを自律的に移動させるメソッドです。
+
+#### プロトタイプ宣言
+
+```c++
+void controlMotorWithTarget(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+  uint8_t maximum_speed, uint8_t speed_change_type,
+  uint16_t target_x, uint16_t target_y, 
+  uint16_t target_angle_degree, uint8_t target_angle_and_rotation_bits = 0);
+```
+
+#### 引数
+
+No. | 変数名         | 型        | 必須   | 説明
+:---|:---------------|:----------|:-------|:-------------
+1   | `distinction`  | `uint8_t`  | ✔     | 制御識別値
+2   | `timeout`      | `uint8_t`  | ✔     | タイムアウト時間(秒)
+3   | `movement_type` | `uint8_t`  | ✔     | 移動タイプ (`0` ～ `2`)
+4   | `maximum_speed` | `uint8_t`  | ✔     | モーターの最大速度指示値 (`10` ～ `2550`)
+5   | `speed_change_type` | `uint8_t`  | ✔ | モーターの速度変化タイプ (`0` ～ `3`)
+6   | `target_x`     | `uint16_t`  | ✔     | 目標地点の X 座標値(`0` ～ `65535`)
+7   | `target_y`     | `uint16_t`  | ✔     | 目標地点の Y 座標値 (`-0` ～ `65535`)
+8   | `target_angle_degree` | `uint16_t`  | ✔     | 目標地点でのキューブの角度  (`0` ～ `0x1fff`) 
+9   | `target_angle_and_rotation_bits` | `uint8_t`  | &nbsp;  |角度の意味と動き方の指定 (`0` ～ `6`)
+
+#### コードサンプル
+
+```c++
+// 座標(150, 200)の位置、角度0の方向で止まるように速度80で移動
+toiocore->controlMotorWithTarget(1, 5, 0, 80, 0, 150, 200, 0);
+delay(5000);
+```
+
+## <a id="ToioCore-controlMotorWithMultipleTargets-method">✔ `controlMotorWithMultipleTargets()` メソッド (目標指定付きモーター制御 (目標複数))</a>
+
+目標地点を複数指定してモーターを制御し、キューブを自律的に移動させるメソッドです。
+
+#### プロトタイプ宣言
+
+```c++
+struct ToioCoreTargetPos {
+  uint16_t posX; // 目標地点の X 座標値
+  uint16_t posY; // 目標地点の Y 座標値 
+  uint16_t angleDegree:13; // 目標地点でのキューブの角度(0～0x1fff)
+  uint8_t angleAndRotation:3; //角度の意味と動き方(0～6)
+};
+
+void controlMotorWithMultipleTargets(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+      uint8_t maximum_speed, uint8_t speed_change_type,  uint8_t addition_setting,
+      uint8_t target_num, ToioCoreTargetPos *target_positions);
+```
+
+#### 引数
+
+No. | 変数名         | 型        | 必須   | 説明
+:---|:---------------|:----------|:-------|:-------------
+1   | `distinction`  | `uint8_t`  | ✔     | 制御識別値
+2   | `timeout`      | `uint8_t`  | ✔     | タイムアウト時間(秒)
+3   | `movement_type` | `uint8_t`  | ✔     | 移動タイプ (`0` ～ `2`)
+4   | `maximum_speed` | `uint8_t`  | ✔     | モーターの最大速度指示値 (`10` ～ `2550`)
+5   | `speed_change_type` | `uint8_t`  | ✔ | モーターの速度変化タイプ (`0` ～ `3`)
+6   | `addition_setting` | `uint8_t`  | ✔ | 書き込み操作の追加設定(`0` ～ `1`)
+7   | `target_num`     | `uint16_t`  | ✔     | ターゲット座標の数(`1` ～ `29`)
+8   | `target_positions` | `ToioCoreTargetPos *`  | ✔     | ターゲット座標の配列へのポインタ
+
+要確認:目標地点5個は動いた。 29個っていける？
+
+
+#### コードサンプル
+
+```c++
+// ５つの目標地点を指定して移動
+  ToioTargetPos pos[5];
+  pos[0].x = 250;
+  pos[0].y = 250;
+  pos[0].angle = 0;
+  pos[1].x = 250;
+  pos[1].y = 300;
+  pos[1].angle = 90;
+  pos[2].x = 300;
+  pos[2].y = 300;
+  pos[2].angle = 180;
+  pos[3].x = 300;
+  pos[3].y = 250;
+  pos[3].angle = 270;
+  pos[4].x = 250;
+  pos[4].y = 250;
+  pos[4].angle = 0;
+  toiocore->controlMotorWithMultipleTargets(0, 0, 0, 50, 0, 0, 5, pos);
+  delay(5000);
+```
+
+### <a id="ToioCore-controlMotorWithAcceleration-method">✔ `controlMotorWithAcceleration()` メソッド (加速度指定モーター制御)</a>
+
+キューブの加速度を指定してモーターを制御するメソッドです。
+
+#### プロトタイプ宣言
+
+```c++
+void controlMotorWithAcceleration(uint8_t translational_speed, uint8_t acceleration,
+  uint16_t rotational_velocity, uint8_t rotational_direction, uint8_t travel_direction,
+  uint8_t priority, uint8_t duration);
+```
+
+#### 引数
+
+No. | 変数名         | 型        | 必須   | 説明
+:---|:---------------|:----------|:-------|:-------------
+1   | `translational_speed`  | `uint8_t`  | ✔     | キューブの並進速度(`0` ～ `255`)
+2   | `acceleration` | `uint8_t`  | ✔     | キューブの加速度(100 ミリ秒ごとの速度の増加分 `0` ～ `255`)
+3   | `rotational_velocity` | `uint16_t`  | ✔     | キューブの向きの回転速度 (度/秒 `0` ～ `65535`)
+4   | `rotational_direction` | `uint8_t`  | ✔     | キューブの向きの回転方向	 (`0` 正 ～ `1` 負)
+5   | `travel_direction` | `uint8_t`  | ✔ | モーターの速度変化タイプ (`0` 前進 ～ `1` 後退)
+6   | `priority`     | `uint8_t`  | ✔     | 速度調整優先指定(`0` 並進優先回転調整  ～ `1` 回転優先速度調整)
+7   | `duration`     | `uint8_t`  | ✔     | 制御時間  x10 ミリ秒 0は制限なし(`0` ～ `255`)
+
+#### コードサンプル
+
+```c++
+// ゆっくり弧を描きながら 2 秒間移動します。
+toiocore->controlMotorWithAcceleration(50, 15, 30, 0, 0, 0, 200);
+delay(5000);
+```
+
+### <a id="ToioCore-onMotor-method">✔ `onMotor()` メソッド (モーター制御の応答コールバックをセット)</a>
+
+toio コア キューブのモーター制御の応答イベントのコールバックをセットします。
+目標指定付きモーター制御の応答、複数目標指定付きモーター制御の応答、モーターの速度情報(デフォルトでは無効)のいずれかが返ります。
+
+#### プロトタイプ宣言
+
+```c++
+// モーター制御の応答
+struct ToioCoreMotorResponse {
+  uint8_t controlType;  // 制御の種類
+  uint8_t controlID; // 制御識別値 または 左モーターの速度
+  uint8_t response;  // 応答内容 または右モーターの速度
+};
+
+typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
+void onMotor(OnMotoraCallback cb);
+```
+
+#### 引数
+
+No. | 変数名   | 型                 | 必須   | 説明
+:---|:--------|:-------------------|:-------|:-------------
+1   | `cb`    | `OnMotorCallback` | ✔     | コールバック関数
+
+#### コードサンプル
+
+以下のサンプルスケッチは、目標指定付きモーター制御の応答、複数目標指定付きモーター制御の応答、モーターの速度情報のいずれかを得るものです。
+
+コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
+
+```c++
+#include <M5Stack.h>
+#include <Toio.h>
+
+// Toio オブジェクト生成
+Toio toio;
+
+void setup() {
+  // M5Stack の初期化
+  M5.begin();
+
+  // toio コア キューブのスキャン開始
+  std::vector<ToioCore*> toiocore_list = toio.scan(3);
+  if (toiocore_list.size() == 0) {
+    return;
+  }
+  ToioCore* toiocore = toiocore_list.at(0);
+
+  // BLE 接続
+  toiocore->connect();
+
+  // モーター制御の応答イベントのコールバックをセット
+  toiocore->onMotor([](ToioCoreMotorResponse motor_res) {
+    Serial.print("Motor Event ");
+    Serial.print("Type=" + String(motor_res.controlType));
+    if(motor_res.controlType == 0xe0 )
+      Serial.println( ", left speed=" + String(motor_res.controlID) + ", right speed=" + String(motor_res.response));
+    else
+      Serial.println( ", controlID=" + String(motor_res.controlID) + ", response=" + String(motor_res.response));
+  });  
+}
+
+void loop() {
+  // コールバックを使う場合には必ず Toio オブジェクトの loop() を呼び出す
+  toio.loop();
+}
+```
 
 ### <a id="ToioCore-getIDReaderData-method">✔ `getIDReaderData()` メソッド (ID読み取りセンサーの状態、マット上の位置情報を取得)</a>
 

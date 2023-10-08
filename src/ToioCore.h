@@ -3,6 +3,8 @@
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   https://github.com/futomi
+  Toio ID read support   https://github.com/mhama
+  Protocol v2.3.0 support  https://github.com/kenichi84 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -18,11 +20,23 @@
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
 
+// モーション検出情報
 struct ToioCoreMotionData {
   bool flat;
   bool clash;
   bool dtap;
   uint8_t attitude;
+  uint8_t shake;
+};
+
+// モーション検出の姿勢(attitude)
+enum ToioCoreMotionPosture {
+  TopFacesUpward = 1,       //　天面が上
+  BottomFacesUpward = 2,    //  底面が上
+  RearSideFacesUpward = 3,  //  背面が上
+  FrontSideFacesUpward = 4, //  正面(toioロゴ)が上
+  RightSideFacesUpward = 5, //  右面が上
+  LeftSideFacesUpward = 6   //  左面が上
 };
 
 // ID Readerで読み取ったIDのタイプ
@@ -64,11 +78,70 @@ struct ToioCoreIDData {
   ToioCoreStandardIDData standard; // Standard IDの場合のデータ
 };
 
+// 目標指定付き移動のターゲット座標
+struct ToioCoreTargetPos {
+  uint16_t posX;
+  uint16_t posY;
+  uint16_t angleDegree:13;
+  uint8_t angleAndRotation:3;
+};
+
+// 目標指定つき移動の移動タイプ
+enum ToioCoreMovementType {
+  MoveWhileRotating = 0,
+  MoveWhileRotatingWithoutMovingBackwards = 1,
+  RotateAfterMoving = 2
+};
+
+// 目標指定つき移動の速度変化タイプ
+enum ToioCoreSpeedChangeType {
+  SpeedConstant = 0,
+  GradualAccelerationTowardsTheTargtPoint = 1,
+  GradualDecelerationTowardsTheTargtPoint = 2,
+  GradualAccelerationHalfwayThenDecelationToTheTargtPoint = 3
+};
+
+// 目標指定つき移動の角度と回転方向タイプ
+enum ToioCoreAngleAndRotationType {
+  AbsoluteDirectionOfLeastAmountOfRotation = 0,
+  AbsoluteForward = 1,
+  AbsoluteNegative = 2,
+  RelativeForward = 3,
+  RelativeNegative = 4,
+  NoAngleNoDirection = 5,
+  SameAsWithWriteOperationDirectionOfLeastAmountOfRotation = 6
+};
+
+// モーター制御の応答
+struct ToioCoreMotorResponse {
+  uint8_t controlType;
+  uint8_t controlID; // or Left motor speed
+  uint8_t response; // or Right motor speed
+};
+
+enum ToioCoreMotorResponseControlType {
+  WithTarget = 0x83,
+  WithMultipleTargets = 0x84,
+  MotorSpeed = 0xe0
+};
+
+enum ToioCoreMotorResponseContent {
+  CompletedSuccessfully = 0,
+  Timeout = 1,
+  ToioIDmissed = 2,
+  InvalidCombinationOfParameters = 3,
+  InvalidState = 4,
+  OtherWrittenControlAccepted = 5,
+  NotSupported = 6,
+  WriteOperationCannotBeAdded = 7
+};
+
 typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
 typedef std::function<void(uint8_t level)> OnBatteryCallback;
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
 typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
+typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
 
 // ---------------------------------------------------------------
 // ToioCore クラス
@@ -102,6 +175,7 @@ class ToioCore {
     OnBatteryCallback _onbattery;
     OnMotionCallback _onmotion;
     OnIDDataCallback _on_id_reader;
+    OnMotorCallback _onmotor;
 
   private:
     void _wait(const unsigned long msec);
@@ -188,6 +262,28 @@ class ToioCore {
 
     // 運転 (モーター制御をスロットルとステアリング操作に置き換える)
     void drive(int8_t throttle, int8_t steering);
+
+    // 目標指定付きモーター制御 (目標１つ)
+    void controlMotorWithTarget(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+      uint8_t maximum_speed, uint8_t speed_change_type,
+      uint16_t target_x, uint16_t target_y, 
+      uint16_t target_angle_degree, uint8_t target_angle_and_rotation_bits = 0);
+
+    // 目標指定付きモーター制御 (目標複数)
+    void controlMotorWithMultipleTargets(uint8_t distinction, uint8_t timeout, uint8_t movement_type, 
+      uint8_t maximum_speed, uint8_t speed_change_type,  uint8_t addition_setting,
+      uint8_t target_num, ToioCoreTargetPos *target_positions);
+
+    // 加速度指定モーター制御
+    void controlMotorWithAcceleration(uint8_t translational_speed, uint8_t acceleration,
+      uint16_t rotational_velocity, uint8_t rotational_direction = 0, uint8_t travel_direction = 0,
+      uint8_t priority = 0, uint8_t duration = 0);
+
+    // モーター制御の応答を取得
+    ToioCoreMotorResponse getMotor();
+
+    // モーター制御の応答コールバックをセット
+    void onMotor(OnMotorCallback cb);
 
     // ID Reader の読み取り結果を取得
     ToioCoreIDData getIDReaderData();
