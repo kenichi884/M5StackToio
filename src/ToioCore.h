@@ -127,7 +127,7 @@ enum ToioCoreMotorResponseControlType {
 
 enum ToioCoreMotorResponseContent {
   CompletedSuccessfully = 0,
-  Timeout = 1,
+  ResponseTimeout = 1,
   ToioIDmissed = 2,
   InvalidCombinationOfParameters = 3,
   InvalidState = 4,
@@ -135,6 +135,24 @@ enum ToioCoreMotorResponseContent {
   NotSupported = 6,
   WriteOperationCannotBeAdded = 7
 };
+
+enum ToioCoreNotificationCondition {
+  NotifyAllways = 0x00,
+  NotifyChangesOnly = 0x01,
+  StopAfter300msNoChange = 0xff
+};
+
+enum ToioCoreMagneticSensorFunctionSetting {
+  DisableMagnetSensor = 0,
+  EnableMagnetState = 1,
+  EnableMagneticForce = 2
+};
+
+enum ToioCorePostureAngleType {
+  AngleTypeEuller = 0x01,
+  AngleTypeQuaternion = 0x01
+};
+
 
 typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
@@ -256,6 +274,21 @@ class ToioCore {
 
     // ダブルタップ検出の時間間隔の設定
     void setDtapThreshold(uint8_t level = 5);
+
+    // 読み取りセンサーの ID 通知頻度設定
+    void setIDnotificationSettings(uint8_t minimum_interval, uint8_t condition);
+
+    // 読み取りセンサーの ID missed 通知感度設定
+    void setIDmissedNotificationSettings(uint8_t sensitivity);
+
+    // 磁気センサーの設定
+    void setMagneticSensorSettings(uint8_t function, uint8_t interval, uint8_t condition);
+
+    // モーターの速度情報の取得の設定
+    void setMotorSpeedInformationAcquistionSettings(bool enable);
+    
+    // 姿勢角検出の設定
+    void setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type = 0x01);
 
     // モーター制御 (引数の値をそのまま送信するローレベルのメソッド)
     void controlMotor(bool ldir, uint8_t lspeed, bool rdir, uint8_t rspeed, uint16_t duration = 0);

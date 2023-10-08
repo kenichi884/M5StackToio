@@ -556,6 +556,61 @@ void ToioCore::setDtapThreshold(uint8_t level) {
 }
 
 // ---------------------------------------------------------------
+// 読み取りセンサーの ID 通知頻度設定
+// ---------------------------------------------------------------
+void ToioCore::setIDnotificationSettings(uint8_t minimum_interval, uint8_t condition){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[4] = {0x18, 0x00, minimum_interval, condition};
+  this->_char_conf->writeValue(data, 4, true);
+}
+
+// ---------------------------------------------------------------
+// 読み取りセンサーの ID missed 通知感度設定
+// ---------------------------------------------------------------
+void ToioCore::setIDmissedNotificationSettings(uint8_t sensitivity){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[3] = {0x19, 0x00, sensitivity};
+  this->_char_conf->writeValue(data, 3, true);
+}
+
+// ---------------------------------------------------------------
+// 磁気センサーの設定
+// ---------------------------------------------------------------
+void ToioCore::setMagneticSensorSettings(uint8_t function, uint8_t interval, uint8_t condition){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[5] = {0x1b, 0x00, function, interval, condition};
+  this->_char_conf->writeValue(data, 5, true);
+}
+
+// ---------------------------------------------------------------
+// モーターの速度情報の取得の設定
+// ---------------------------------------------------------------
+void ToioCore::setMotorSpeedInformationAcquistionSettings(bool enable){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[3] = {0x1c, 0x00, (uint8_t) (enable ? 0x01 : 0x00)};
+  this->_char_conf->writeValue(data, 3, true);
+}
+
+// ---------------------------------------------------------------
+// 姿勢角検出の設定
+// ---------------------------------------------------------------
+void ToioCore::setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type ){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[5] = {0x1d, 0x00, angle_type, interval, condition};
+  this->_char_conf->writeValue(data, 5, true);
+}
+
+// ---------------------------------------------------------------
 // モーター制御 (引数の値をそのまま送信するローレベルのメソッド)
 // ---------------------------------------------------------------
 void ToioCore::controlMotor(bool ldir, uint8_t lspeed, bool rdir, uint8_t rspeed, uint16_t duration) {
