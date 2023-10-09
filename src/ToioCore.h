@@ -150,7 +150,7 @@ enum ToioCoreMagneticSensorFunctionSetting {
 
 enum ToioCorePostureAngleType {
   AngleTypeEuller = 0x01,
-  AngleTypeQuaternion = 0x01
+  AngleTypeQuaternion = 0x02
 };
 
 

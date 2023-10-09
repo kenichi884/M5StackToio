@@ -286,27 +286,26 @@ uint8_t ToioCore::getBatteryLevel() {
 // ---------------------------------------------------------------
 void ToioCore::onBattery(OnBatteryCallback cb) {
   if (!this->isConnected()) {
-    if(cb != nullptr){
-      this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-        if (!g_current_client) {
-          return;
-        }
-        if (len != 1) {
-          return;
-        }
-        uint8_t level = data[0];
-        g_event_battery_level = level;
-        g_event_battery_updated = true;
-      });
-    } else {
-      this->_char_battery->registerForNotify(nullptr);
-    }
-    this->_onbattery = cb;
-  } else {
-    this->_onbattery = nullptr;
+    return;
   }
-  
+  if(cb != nullptr){
+    this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!g_current_client) {
+        return;
+      }
+      if (len != 1) {
+        return;
+      }
+      uint8_t level = data[0];
+      g_event_battery_level = level;
+      g_event_battery_updated = true;
+    });
+  } else {
+    this->_char_battery->registerForNotify(nullptr);
+  }
+  this->_onbattery = cb;
 }
+
 
 // ---------------------------------------------------------------
 // ボタンの状態を取得
@@ -328,28 +327,27 @@ bool ToioCore::getButtonState() {
 // ---------------------------------------------------------------
 void ToioCore::onButton(OnButtonCallback cb) {
   if (!this->isConnected()) {
-    if(cb != nullptr){
-      this->_char_button->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-        if (!g_current_client) {
-          return;
-        }
-        if (len != 2) {
-          return;
-        }
-        if (data[0] != 0x01) {
-          return;
-        }
-        bool state = (data[1] == 0x80) ? true : false;
-        g_event_button_state = state;
-        g_event_button_updated = true;
-      });
-    } else {
-      this->_char_button->registerForNotify(nullptr);
-    }
-    this->_onbutton = cb;
-  } else {
-    this->_onbattery = nullptr;
+    return;
   }
+  if(cb != nullptr){
+    this->_char_button->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!g_current_client) {
+        return;
+      }
+      if (len != 2) {
+        return;
+      }
+      if (data[0] != 0x01) {
+        return;
+      }
+      bool state = (data[1] == 0x80) ? true : false;
+      g_event_button_state = state;
+      g_event_button_updated = true;
+    });
+  } else {
+    this->_char_button->registerForNotify(nullptr);
+  }
+  this->_onbutton = cb;
 }
 
 // ---------------------------------------------------------------
@@ -377,28 +375,27 @@ ToioCoreMotionData ToioCore::getMotion() {
 // ---------------------------------------------------------------
 void ToioCore::onMotion(OnMotionCallback cb) {
   if (!this->isConnected()) {
-    if(cb != nullptr){
-      this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-        if (!g_current_client) {
-          return;
-        }
-        if (len != 6) {
-          return;
-        }
-        g_event_motion_data.flat = data[1];
-        g_event_motion_data.clash = data[2];
-        g_event_motion_data.dtap = data[3];
-        g_event_motion_data.attitude = data[4];
-        g_event_motion_data.shake = data[5];
-        g_event_motion_updated = true;
-      });
-    } else {
-      this->_char_motion->registerForNotify(nullptr);
-    }
-    this->_onmotion = cb;
-  } else {
-    this->_onbattery = nullptr;
+    return;
   }
+  if(cb != nullptr){
+    this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!g_current_client) {
+        return;
+      }
+      if (len != 6) {
+        return;
+      }
+      g_event_motion_data.flat = data[1];
+      g_event_motion_data.clash = data[2];
+      g_event_motion_data.dtap = data[3];
+      g_event_motion_data.attitude = data[4];
+      g_event_motion_data.shake = data[5];
+      g_event_motion_updated = true;
+    });
+  } else {
+    this->_char_motion->registerForNotify(nullptr);
+  }
+  this->_onmotion = cb;
 }
 
 // ---------------------------------------------------------------
@@ -671,29 +668,27 @@ ToioCoreMotorResponse ToioCore::getMotor() {
 // ---------------------------------------------------------------
 void ToioCore::onMotor(OnMotorCallback cb) {
   if (!this->isConnected()) {
-    if(cb != nullptr){
-      this->_char_motor->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-        USBSerial.println("call motor callback " + String(len));
-        if (!g_current_client) {
-          return;
-        }
-        
-        if (len != 3) {
-          return;
-        }
-        g_event_motor_response.controlType = data[0];
-        g_event_motor_response.controlID = data[1];
-        g_event_motor_response.response = data[2];
-
-        g_event_motor_updated = true;
-      });
-    } else {
-      this->_char_motor->registerForNotify(nullptr);
-    }
-    this->_onmotor = cb;
-  } else {
-    this->_onbattery = nullptr;
+    return;
   }
+  if(cb != nullptr){
+    this->_char_motor->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!g_current_client) {
+        return;
+      }
+      
+      if (len != 3) {
+        return;
+      }
+      g_event_motor_response.controlType = data[0];
+      g_event_motor_response.controlID = data[1];
+      g_event_motor_response.response = data[2];
+
+      g_event_motor_updated = true;
+    });
+  } else {
+    this->_char_motor->registerForNotify(nullptr);
+  }
+  this->_onmotor = cb;
 }
 
 
@@ -722,31 +717,30 @@ ToioCoreIDData ToioCore::getIDReaderData() {
 // ---------------------------------------------------------------
 void ToioCore::onIDReaderData(OnIDDataCallback cb) {
   if (!this->isConnected()) {
-    if(cb != nullptr){
-      this->_char_id_reader->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-        if (!g_current_client) {
-          return;
-        }
-        if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
-          // no data
-          g_event_id_data.type = ToioCoreIDTypeNone;
-          g_event_id_data_updated = true;
-          return;
-        }
-
-        if (!ToioCore::_convertBLEBytesToIDData(data, len, g_event_id_data)) {
-          // wrong data
-          return;
-        }
-        g_event_id_data_updated = true;
-      });
-    } else {
-      this->_char_id_reader->registerForNotify(nullptr);
-    }
-    this->_on_id_reader = cb;
-  } else {
-    this->_onbattery = nullptr;
+    return;
   }
+  if(cb != nullptr){
+    this->_char_id_reader->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!g_current_client) {
+        return;
+      }
+      if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
+        // no data
+        g_event_id_data.type = ToioCoreIDTypeNone;
+        g_event_id_data_updated = true;
+        return;
+      }
+
+      if (!ToioCore::_convertBLEBytesToIDData(data, len, g_event_id_data)) {
+        // wrong data
+        return;
+      }
+      g_event_id_data_updated = true;
+    });
+  } else {
+    this->_char_id_reader->registerForNotify(nullptr);
+  }
+  this->_on_id_reader = cb;
 }
 
 // ---------------------------------------------------------------
