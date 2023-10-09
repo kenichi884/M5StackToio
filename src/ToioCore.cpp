@@ -28,6 +28,15 @@ static bool g_event_button_state = false;
 static bool g_event_motion_updated = false;
 static ToioCoreMotionData g_event_motion_data = {0x00, 0x00, 0x00, 0x00, 0x00};
 
+static bool g_event_posture_angle_euler_updated = false;
+static ToioCorePostureAngleEuler g_event_posture_angle_euler_data = {0, 0, 0};
+
+static bool g_event_posture_angle_quaternion_updated = false;
+static ToioCorePostureAngleQuaternion g_event_posture_angle_quaternion_data = {0, 0, 0, 0};
+
+static bool g_event_magnetic_sensor_updated = false;
+static ToioCoreMagneticSensorData g_event_magnetic_sensor_data = {0, 0, 0, 0, 0};
+
 static bool g_event_id_data_updated = false;
 static ToioCoreIDData g_event_id_data;
 
@@ -59,6 +68,8 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_onbutton = nullptr;
   this->_onbattery = nullptr;
   this->_onmotion = nullptr;
+  this->_onmagneticsensor = nullptr;
+  this->_onpostureangleeuler = nullptr;
   this->_on_id_reader = nullptr;
   this->_onmotor = nullptr;
 
@@ -373,29 +384,55 @@ ToioCoreMotionData ToioCore::getMotion() {
 // ---------------------------------------------------------------
 // モーションセンサーのコールバックをセット
 // ---------------------------------------------------------------
-void ToioCore::onMotion(OnMotionCallback cb) {
+void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, OnPostureAngleEulerCallback euler_cb) {
   if (!this->isConnected()) {
     return;
   }
-  if(cb != nullptr){
+  if((cb != nullptr) || (mag_cb != nullptr) || (euler_cb != nullptr)) {
     this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
       if (!g_current_client) {
         return;
       }
-      if (len != 6) {
-        return;
+      if(data[0] == 0x01){
+        if (len != 6) {
+          return;
+        }
+        g_event_motion_data.flat = data[1];
+        g_event_motion_data.clash = data[2];
+        g_event_motion_data.dtap = data[3];
+        g_event_motion_data.attitude = data[4];
+        g_event_motion_data.shake = data[5];
+        g_event_motion_updated = true;
+      } else if(data[0] == 0x03){ // posture  angle
+        if(data[1] == 0x01){
+          g_event_posture_angle_euler_data.roll = *(int16_t *) &data[2];
+          g_event_posture_angle_euler_data.pitch = *(int16_t *) &data[4];
+          g_event_posture_angle_euler_data.yaw = *(int16_t *) &data[6];
+          g_event_posture_angle_euler_updated = true;
+        }else if (data[1] == 0x02){
+          g_event_posture_angle_quaternion_data.w = *(int16_t *) &data[2];
+          g_event_posture_angle_quaternion_data.x = *(int16_t *) &data[4];
+          g_event_posture_angle_quaternion_data.y = *(int16_t *) &data[6];
+          g_event_posture_angle_quaternion_data.z = *(int16_t *) &data[8];
+          g_event_posture_angle_quaternion_updated = true;
+        } else {
+          return;
+        }
+      } else if(data[0] == 0x02){ // magnetic sensor
+        g_event_magnetic_sensor_data.state = data[1];
+        g_event_magnetic_sensor_data.strength = data[2];
+        g_event_magnetic_sensor_data.x = data[3];
+        g_event_magnetic_sensor_data.y = data[4];
+        g_event_magnetic_sensor_data.z = data[5];
+        g_event_magnetic_sensor_updated = true;
       }
-      g_event_motion_data.flat = data[1];
-      g_event_motion_data.clash = data[2];
-      g_event_motion_data.dtap = data[3];
-      g_event_motion_data.attitude = data[4];
-      g_event_motion_data.shake = data[5];
-      g_event_motion_updated = true;
     });
   } else {
     this->_char_motion->registerForNotify(nullptr);
   }
   this->_onmotion = cb;
+  this->_onmagneticsensor = mag_cb;
+  this->_onpostureangleeuler = euler_cb;
 }
 
 // ---------------------------------------------------------------
@@ -791,6 +828,23 @@ void ToioCore::_loop() {
       g_event_motion_updated = false;
     }
   }
+
+  // 磁気センサーイベント
+  if(g_event_magnetic_sensor_updated) {
+     if (this->_onmagneticsensor) {
+      this->_onmagneticsensor(g_event_magnetic_sensor_data);
+      g_event_magnetic_sensor_updated = false;
+    }
+  } 
+
+  // 姿勢角イベント
+  if (g_event_posture_angle_euler_updated) {
+    if (this->_onpostureangleeuler) {
+      this->_onpostureangleeuler(g_event_posture_angle_euler_data);
+      g_event_posture_angle_euler_updated = false;
+    }
+  }
+  
 
   // ID読み取りセンサーイベント
   if (g_event_id_data_updated) {

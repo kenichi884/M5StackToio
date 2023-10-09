@@ -39,6 +39,27 @@ enum ToioCoreMotionPosture {
   LeftSideFacesUpward = 6   //  左面が上
 };
 
+// 姿勢悪情報
+struct ToioCorePostureAngleEuler {
+  int16_t roll;
+  int16_t pitch;
+  int16_t yaw;
+};
+struct ToioCorePostureAngleQuaternion {
+  int16_t w;
+  int16_t x;
+  int16_t y;
+  int16_t z;
+};
+//磁気センサー情報
+struct ToioCoreMagneticSensorData {
+  uint8_t state;
+  uint8_t strength;
+  int8_t x;
+  int8_t y;
+  int8_t z;
+};
+
 // ID Readerで読み取ったIDのタイプ
 enum ToioCoreIDType {
   ToioCoreIDTypeNone = 0,     // 読み取れなかった、または初期値
@@ -158,6 +179,8 @@ typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
 typedef std::function<void(uint8_t level)> OnBatteryCallback;
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
+typedef std::function<void(ToioCorePostureAngleEuler angle_euler)> OnPostureAngleEulerCallback;
+typedef std::function<void(ToioCoreMagneticSensorData magnetic_sensor)> OnMagneticSensorCallback;
 typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
 typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
 
@@ -192,6 +215,8 @@ class ToioCore {
     OnButtonCallback _onbutton;
     OnBatteryCallback _onbattery;
     OnMotionCallback _onmotion;
+    OnPostureAngleEulerCallback _onpostureangleeuler;
+    OnMagneticSensorCallback _onmagneticsensor;
     OnIDDataCallback _on_id_reader;
     OnMotorCallback _onmotor;
 
@@ -261,7 +286,7 @@ class ToioCore {
     ToioCoreMotionData getMotion();
 
     // モーションセンサーのコールバックをセット
-    void onMotion(OnMotionCallback cb);
+    void onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb = nullptr, OnPostureAngleEulerCallback euler_cb = nullptr);
 
     // BLE プロトコルバージョン取得
     std::string getBleProtocolVersion();
