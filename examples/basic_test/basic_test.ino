@@ -49,7 +49,7 @@ Toio toio;
 void setup() {
   M5.begin();
   M5.Power.begin();
-  SERIAL_LOG.begin();
+  SERIAL_LOG.begin(115200);
   SERIAL_LOG.println("M5StackToio");
 
   // 3 秒間 Toio Core Cube をスキャン

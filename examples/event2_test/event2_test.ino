@@ -30,7 +30,7 @@
   姿勢角度の通知、モーター速度の通知)をオンにし、それぞれのイベントを待ち受け、受信し
   たイベント情報を シリアルポートのログに表示します。
 
-  Toio Core Cube 接続された後、M5Stack の A ボタン押すと、Toio Core Cubeが
+  Toio Core Cubeが接続された後、M5Stack の A ボタン押すと、Toio Core Cubeが
   加速度指定モーター制御で移動します。(速度の変化が通知されます。)
   Aボタンを2秒以上押すと Toio Core Cube との BLE 接続を遮断または再接続します。
 
@@ -54,7 +54,7 @@ ToioCore* toiocore;
 
 void setup() {
   M5.begin();
-  SERIAL_LOG.begin();
+  SERIAL_LOG.begin(115200);
   SERIAL_LOG.println("M5StackToio");
 
   // 3 秒間 Toio Core Cube をスキャン
