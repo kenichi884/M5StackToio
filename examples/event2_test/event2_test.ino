@@ -9,13 +9,44 @@
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
 
+  --------------------------------------------------------------
+  This sample sketch tests features that are off by default (changing the ID notification interval, using magnetic sensors,
+  attitude angle notifications, and motor speed notifications) that are off by default.
+  This sample sketch was tested on M5Stack Atom S3, Atom S3 lite, and M5Capsule.
+  M5Unified, so it should also work with other M5Stack controllers that have more than one button.
+  I think it works with other M5Stack controllers with more than one button.
+  Log.printf() of M5Unified is used for operation log. Log.printf() of M5Unified. By default, it appears on the serial port.
+
+  [How to use]
+
+  Turn on Toio Core Cube beforehand.
+
+  When M5Stack starts, it automatically scans Toio Core Cube.
+  If the Toio Core Cube is found, the device name and MAC address will appear in the serial port log.
+  will be displayed in the serial port log. If it is not found, press the reset button on the M5Stack button
+  If it is not found, press the reset button on the M5Stack button again to reboot.
+
+  Once the connection is made, you will be able to use functions that are off by default (changing the ID notification interval, using the magnetic sensor, changing the attitude angle notification, and changing the motor speed),
+  Attitude Angle Notification, Motor Speed Notification) are turned on, and the M5Stack listens for each event and logs the received event information in the serial port log.
+  The default is to turn on the off functions (change ID notification interval, use of magnetic sensors, attitude angle notification, motor speed notification), listen for each event, and display the received event information in the serial port log.
+
+  After the Toio Core Cube is connected, pressing the A button on the M5Stack will cause the Toio Core Cube to
+  The Toio Core Cube moves under the control of a motor with a specified acceleration. (You will be notified of the change in speed.)
+  Pressing the A button for more than 2 seconds disconnects or reconnects the BLE connection with the Toio Core Cube.
+
+  The arduino ESP32 seems to be limited to registering up to four BLE notifications.
+  Therefore, it is not possible to receive all the notifications (events) of Toio Core Cube at the same time.
+  Please set only (up to 4) necessary notifications (callbacks).
+  (Motion, magnetism, and attitude angle use the same characteristic, so they count as one.)
+
+ --------------------------------------------------------------
+ 
   このサンプルスケッチはデフォルトではオフの機能(IDの通知間隔の変更、磁気センサーの使用、
   姿勢角度の通知、モーター速度の通知)をテストします。
   このサンプルスケッチは M5Stack Atom S3、Atom S3 lite、M5Capsuleで動作確認しました。
   M5Unifiedを使っているので、ほかのボタンが一つ以上あるM5Stack製 Controllerでも
   動作すると思います。
-  動作ログはシリアルポートにprintln()しています。ESP32-S3以外の場合は
-  #define SERIAL_LOGの定義をUSBSerialからSerialに変更してください。
+  動作ログはM5UnifiedのM5.Log.printf()を使っています。デフォルトではシリアルポートに出ます。
 
   [使い方]
 
@@ -42,10 +73,6 @@
 #include <M5Unified.h>
 #include <Toio.h>
 
-// for ESP32-S3
-#define SERIAL_LOG USBSerial
-// #define SERIAL_LOG Serial
-
 // Toio オブジェクト生成
 Toio toio;
 
@@ -54,41 +81,38 @@ ToioCore* toiocore;
 
 void setup() {
   M5.begin();
-  SERIAL_LOG.begin(115200);
-  SERIAL_LOG.println("M5StackToio");
+  M5.Log.printf("M5StackToio event2_test\n");
 
   // 3 秒間 Toio Core Cube をスキャン
-  SERIAL_LOG.println("Scanning your toio core...");
+  M5.Log.printf("Scanning your toio core...\n");
   std::vector<ToioCore*> toiocore_list = toio.scan(3);
 
   // 見つからなければ終了
   size_t n = toiocore_list.size();
   if (n == 0) {
-    SERIAL_LOG.println("No toio Core Cube was found. Turn on your Toio Core Cube, then press the reset button of your Toio Core Cube.");
+    M5.Log.printf("No toio Core Cube was found. Turn on your Toio Core Cube, then press the reset button of your Toio Core Cube.\n");
     return;
   }
 
   // 最初に見つかった Toio Core Cube の ToioCore オブジェクト
   toiocore = toiocore_list.at(0);
-  SERIAL_LOG.println("Your toio core was found:      ");
+  M5.Log.printf("Your toio core was found:      \n");
 
   // Toio Core のデバイス名と MAC アドレスを表示
-  SERIAL_LOG.println(String(toiocore->getName().c_str()) + " (" + String(toiocore->getAddress().c_str()) + ")");
+  M5.Log.printf("%s (%s)\n", toiocore->getName().c_str(), toiocore->getAddress().c_str());
 
   // BLE 接続開始
-  SERIAL_LOG.println("Connecting...");
+  M5.Log.printf("Connecting...\n");
 
   if (!toiocore->connect()) {
-    SERIAL_LOG.println("Failed to establish a BLE connection.");
+    M5.Log.printf("Failed to establish a BLE connection.\n");
     return;
   }
-  SERIAL_LOG.println("Connected.");
+  M5.Log.printf("Connected.\n");
   
-
-    // Connection イベントのコールバックをセット
+  // Connection イベントのコールバックをセット
   toiocore->onConnection([](bool state) {
-    SERIAL_LOG.print("Connection Event ");
-    SERIAL_LOG.println(state ? "Connected   " : "Disconnected");
+    M5.Log.printf("Connection Event %s\n", state ? "Connected   " : "Disconnected");
   });
 
   // arduino ESP32では4つまでしかBLE notificationをregisterForNotify()できない
@@ -103,18 +127,19 @@ void setup() {
   
   // 読み取りセンサーのイベントのコールバックをセット
   toiocore->onIDReaderData([](ToioCoreIDData id_data){
-  SERIAL_LOG.print("IDReader Event ");
-    if (id_data.type == ToioCoreIDTypePosition) {
-      SERIAL_LOG.println("posX: " + String(id_data.position.cubePosX)
-      + " posY: " + String(id_data.position.cubePosY)
-      + " angle: " + String(id_data.position.cubeAngleDegree));
-    }
-    else if (id_data.type == ToioCoreIDTypeStandard) {
-      SERIAL_LOG.println("Standard ID: " + String(id_data.standard.standardID));
-    }
-    else {
-      SERIAL_LOG.println("no id found.");
-    }
+    M5.Log.printf("IDReader Event ");
+      if (id_data.type == ToioCoreIDTypePosition) {
+        M5.Log.printf("posX: %u posY: %u angle: %u\n", 
+        id_data.position.cubePosX,
+        id_data.position.cubePosY,
+        id_data.position.cubeAngleDegree);
+      }
+      else if (id_data.type == ToioCoreIDTypeStandard) {
+        M5.Log.printf("Standard ID: %u\n", id_data.standard.standardID);
+      }
+      else {
+        M5.Log.printf("no id found.\n");
+      }
   });
 
   // 磁気センサーの設定
@@ -129,16 +154,16 @@ void setup() {
   // Motion イベントと磁気センサーと姿勢角のコールバックをセット
   toiocore->onMotion(
     [](ToioCoreMotionData motion) {
-    SERIAL_LOG.print("Motion Event ");
-    SERIAL_LOG.println("flat=" + String(motion.flat) + ", clash=" + String(motion.clash) + ", dtap=" + String(motion.dtap) + ", attitude=" + String(motion.attitude) + ", shake=" + String(motion.shake));
+    M5.Log.printf("Motion Event flat=%u, clash=%u, dtap=%u, attitude=%u , shake=%u\n",
+      motion.flat, motion.clash, motion.dtap, motion.attitude, motion.shake);
     },
     [](ToioCoreMagneticSensorData mag_sensor){
-      SERIAL_LOG.print("Magnetic Sensor Event ");
-      SERIAL_LOG.println("state=" + String(mag_sensor.state) + ", strength=" + String(mag_sensor.strength) + ", x=" + String(mag_sensor.x) + ", y=" + String(mag_sensor.y) + ", z=" + String(mag_sensor.z));
+      M5.Log.printf("Magnetic Sensor Event state=%u, strength=%u, x=%d, y=%d, z=%d\n",
+      mag_sensor.state, mag_sensor.strength, mag_sensor.x, mag_sensor.y, mag_sensor.z);
     },
     [](ToioCorePostureAngleEuler euler_angle){
-      SERIAL_LOG.print("Posture Angle Euler Event ");
-      SERIAL_LOG.println("roll=" + String(euler_angle.roll) + ", pitch=" + String(euler_angle.pitch) + ", yaw=" + String(euler_angle.yaw));
+      M5.Log.printf("Posture Angle Euler Event roll=%d, pitch=%d, yaw=%d\n",
+      euler_angle.roll, euler_angle.pitch, euler_angle.yaw);
     }
   ); 
   // 不要なコールバックはnullptrをセットする  
@@ -147,8 +172,8 @@ void setup() {
   toiocore->onMotion(
     nullptr,
     [](ToioCoreMagneticSensorData mag_sensor){
-      SERIAL_LOG.print("Magnetic Sensor Event ");
-      SERIAL_LOG.println("state=" + String(mag_sensor.state) + ", strength=" + String(mag_sensor.strength) + ", x=" + String(mag_sensor.x) + ", y=" + String(mag_sensor.y) + ", z=" + String(mag_sensor.z));
+      M5.Log.printf("Magnetic Sensor Event state=%u, strength=%u, x=%d, y=%d, z=%d\n",
+      mag_sensor.state, mag_sensor.strength, mag_sensor.x, mag_sensor.y, mag_sensor.z);
     },
     nullptr
   ); 
@@ -159,13 +184,15 @@ void setup() {
 
   // Motor イベントのコールバックをセット
   toiocore->onMotor([](ToioCoreMotorResponse motor_res) {
-    SERIAL_LOG.print("Motor Event ");
-    SERIAL_LOG.print("Type=" + String(motor_res.controlType));
+    M5.Log.printf("Motor Event Type=%u", motor_res.controlType);
     if(motor_res.controlType == 0xe0 )
-      SERIAL_LOG.println( ", left speed=" + String(motor_res.controlID) + ", right speed=" + String(motor_res.response));
+      M5.Log.printf( ", left speed=%u, right speed=%u\n", motor_res.controlID, motor_res.response);
     else
-      SERIAL_LOG.println( ", controlID=" + String(motor_res.controlID) + ", response=" + String(motor_res.response));
+      M5.Log.printf( ", controlID=%u, response=%u\n", motor_res.controlID, motor_res.response);
   });   
+
+  //空きヒープメモリサイズの確認
+  //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
 }
 
 void loop() {
@@ -178,16 +205,16 @@ void loop() {
   if (M5.BtnA.wasReleaseFor(2000)) { // M5Stack のボタン A が2秒長押しされたときの処理
     // Toio Core Cube と BLE 接続中かどうかをチェック
     if (toiocore->isConnected()) {
-      SERIAL_LOG.println("try disconnect");
+      M5.Log.printf("try disconnect\n");
       toiocore->disconnect(); // 接続中なら切断
     } else {
-      SERIAL_LOG.println("try connect");
+      M5.Log.printf("try connect\n");
       toiocore->connect(); // 切断中なら接続
     }
   } else if(M5.BtnA.wasReleased()) { // M5Stack のボタン A が押されたときの処理
-    SERIAL_LOG.println("start motor");
+    M5.Log.printf("start motor\n");
     // 加速度指定付き移動 速度変化イベント(Motor イベントのコールバック)がくるかどうかのテスト用
-    SERIAL_LOG.println("Acceleration Control");
+    M5.Log.printf("Acceleration Control\n");
     toiocore->controlMotorWithAcceleration(50, 15, 30, 0, 0, 0, 200);
   }
 

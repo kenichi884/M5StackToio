@@ -71,13 +71,33 @@ cd Documents\Arduino\libraries
 git clone https://github.com/kenichi884/M5StackToio.git
 ```
 
+PlatformIOの場合は、プロジェクトフォルダのlibの下にToioフォルダを作ってその中にToio.h、Toio.cpp、ToioCore.h、ToioCore.cppを置いてください。
+
+ヒープメモリ消費を抑えるため、v1.0.1からBLEスタックをデフォルトのもの(Bluedroid)から[NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino)に変更しています。
+(37KBほど違いがあります。WiFiと同時に使う場合はNimBLEでないとヒープが足りず使えません。また、nimbleconfig.hの設定でさらにメモリを空けることもできます。)
+
+[NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino)ライブラリをインストールしてください。
+Arduino IDEではライブラリマネージャでNimBLE-Arduinoを検索してインストールしてください。
+PlatformIOではplatformio.iniのenv:セクションのlib_depsオプションのところに以下の一行を足してください。
+```
+h2zero/NimBLE-Arduino@^1.4.1
+```
+
+元のBLEスタックを使いたい場合はToioCore.hの #define USE_NIMBLE 1 を無効にしてください。
+```
+#define USE_NIMBLE 1
+を以下のように変更
+// #define USE_NIMBLE 1
+```
+
+
 ---------------------------------------
 ## <a id="Usage">3. 使い方</a>
 
 以下のサンプルコードは、toio コア キューブをスキャンし、最初に発見した toio コア キューブに接続し、3 秒後に切断します。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -89,27 +109,27 @@ void setup() {
   M5.Power.begin();
   M5.Lcd.clear();
 
-  Serial.println("- toio コア キューブをスキャンします。");
+  M5.Log.println("- toio コア キューブをスキャンします。");
   std::vector<ToioCore*> toiocore_list = toio.scan(3);
   size_t n = toiocore_list.size();
   if (n == 0) {
-    Serial.println("- toio コア キューブが見つかりませんでした。");
+    M5.Log.println("- toio コア キューブが見つかりませんでした。");
     return;
   }
-  Serial.printf("- %d 個の toio コア キューブが見つかりました。\n", n);
+  M5.Log.printf("- %d 個の toio コア キューブが見つかりました。\n", n);
 
-  Serial.println("- toio コア キューブに BLE 接続します。");
+  M5.Log.println("- toio コア キューブに BLE 接続します。");
   ToioCore* toiocore = toiocore_list.at(0);
   bool connected = toiocore->connect();
   if (!connected) {
-    Serial.println("- BLE 接続に失敗しました。");
+    M5.Log.println("- BLE 接続に失敗しました。");
     return;
   }
-  Serial.println("- BLE 接続に成功しました。");
-  Serial.println("- 3 秒後に切断します。");
+  M5.Log.println("- BLE 接続に成功しました。");
+  M5.Log.println("- 3 秒後に切断します。");
   delay(3000);
   toiocore->disconnect();
-  Serial.println("- BLE コネクションを切断しました。");
+  M5.Log.println("- BLE コネクションを切断しました。");
 }
 
 void loop() {
@@ -135,7 +155,7 @@ void loop() {
 以下の通り、`.ino` ファイルの先頭で、`M5Stack.h` に加え、本ライブラリのヘッダファイル `Toio.h` をインクルードしてください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 ```
 
@@ -162,7 +182,7 @@ std::vector<ToioCore*> toiocore_list = toio.scan(3);
 ```c++
 size_t n = toiocore_list.size();
 if(n == 0) {
-  Serial.println("toio コア キューブが見つかりませんでした。");
+  M5.Log.println("toio コア キューブが見つかりませんでした。");
   return;
 }
 ToioCore* toiocore = toiocore_list.at(0);
@@ -177,7 +197,7 @@ ToioCore* toiocore = toiocore_list.at(0);
 ```c++
 bool connected = toiocore->connect();
 if(!connected) {
-  Serial.println("BLE 接続に失敗しました。");
+  M5.Log.println("BLE 接続に失敗しました。");
   return;
 }
 ```
@@ -275,7 +295,7 @@ std::string getAddress();
 
 ```c++
 std::string mac = toiocore->getAddress();
-Serial.println(mac.c_str()); // 例 "d1:52:fa:d2:c6:a1"
+M5.Log.println(mac.c_str()); // 例 "d1:52:fa:d2:c6:a1"
 ```
 
 ### <a id="ToioCore-getName-method">✔ `getName()` メソッド (デバイス名取得)</a>
@@ -296,7 +316,7 @@ std::string getName();
 
 ```c++
 std::string name = toiocore->getName();
-Serial.println(name.c_str()); // 例 "toio Core Cube"
+M5.Log.println(name.c_str()); // 例 "toio Core Cube"
 ```
 
 ### <a id="ToioCore-connect-method">✔ `connect()` メソッド (BLE 接続)</a>
@@ -318,7 +338,7 @@ bool connect();
 ```c++
 bool connected = toiocore->connect();
 if (!connected) {
-  Serial.println("- BLE 接続に失敗しました。");
+  M5.Log.println("- BLE 接続に失敗しました。");
   return;
 }
 ```
@@ -361,9 +381,9 @@ bool isConnected();
 
 ```c++
 if(toiocore->isConnected()) {
-  Serial.println("接続中");
+  M5.Log.println("接続中");
 } else {
-  Serial.println("切断中");
+  M5.Log.println("切断中");
 }
 ```
 
@@ -391,7 +411,7 @@ No. | 変数名   | 型                     | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。そのため、以下のサンプルスケッチでは、`loop()` 関数内で BLE 接続と切断を行っています。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -416,7 +436,7 @@ void setup() {
 
   // BLE 接続状態イベントのコールバックをセット
   toiocore->onConnection([](bool state) {
-    Serial.println(state ? "接続" : "切断");
+    M5.Log.println(state ? "接続" : "切断");
   });
 }
 
@@ -457,7 +477,7 @@ std::string getBleProtocolVersion();
 
 ```c++
 std::string ble_ver = toiocore->getBleProtocolVersion();
-Serial.println(ble_ver.c_str()); // 例 "2.1.0"
+M5.Log.println(ble_ver.c_str()); // 例 "2.1.0"
 ```
 
 ### <a id="ToioCore-playSoundEffect-method">✔ `playSoundEffect()` メソッド (効果音再生)</a>
@@ -625,7 +645,7 @@ uint8_t getBatteryLevel();
 
 ```c++
 uint8_t batt_level = toiocore->getBatteryLevel();
-Serial.printf("%d パーセント\n", batt_level);
+M5.Log.printf("%d パーセント\n", batt_level);
 ```
 
 ### <a id="ToioCore-onBattery-method">✔ `onBattery()` メソッド (バッテリーイベントのコールバックをセット)</a>
@@ -652,7 +672,7 @@ No. | 変数名   | 型                  | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -675,7 +695,7 @@ void setup() {
 
   // バッテリーイベントのコールバックをセット
   toiocore->onBattery([](uint8_t level) {
-    Serial.printf("%d パーセント\n", level);
+    M5.Log.printf("%d パーセント\n", level);
   });
 }
 
@@ -703,9 +723,9 @@ bool getButtonState();
 
 ```c++
 if(toiocore->getButtonState()) {
-  Serial.println("ボタンが押されています。");
+  M5.Log.println("ボタンが押されています。");
 } else {
-  Serial.println("ボタンは押されていません。");
+  M5.Log.println("ボタンは押されていません。");
 }
 ```
 
@@ -733,7 +753,7 @@ No. | 変数名   | 型                 | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -756,7 +776,7 @@ void setup() {
 
   // ボタン押下状態イベントのコールバックをセット
   toiocore->onButton([](bool state) {
-    Serial.println(state ? "ボタン押下" : "ボタン解除");
+    M5.Log.println(state ? "ボタン押下" : "ボタン解除");
   });
 }
 
@@ -815,10 +835,10 @@ ToioCoreMotionData getMotion();
 
 ```c++
 ToioCoreMotionData motion = toiocore->getMotion();
-Serial.println("- 水平検出: " + String(motion.flat ? "水平" : "水平でない"));
-Serial.println("- 衝突検出: " + String(motion.clash ? "あり" : "なし"));
-Serial.println("- ダブルタップ検出: " + String(motion.dtap ? "あり" : "なし"));
-Serial.println("- 姿勢検出: " + String(motion.attitude));
+M5.Log.printf("- 水平検出: %s\n", motion.flat ? "水平" : "水平でない");
+M5.Log.printf("- 衝突検出: %s\n", motion.clash ? "あり" : "なし");
+M5.Log.printf("- ダブルタップ検出: %s\n", motion.dtap ? "あり" : "なし");
+M5.Log.printf("- 姿勢検出: %d\n",  motion.attitude);
 ```
 
 ### <a id="ToioCore-onMotion-method">✔ `onMotion()` メソッド (モーションセンサーのコールバックをセット)</a>
@@ -852,7 +872,7 @@ No. | 変数名   | 型                 | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -875,11 +895,11 @@ void setup() {
 
   // モーションイベントのコールバックをセット
   toiocore->onMotion([](ToioCoreMotionData motion) {
-    Serial.println("------------------------------------------");
-    Serial.println("- 水平検出: " + String(motion.flat ? "水平" : "水平でない"));
-    Serial.println("- 衝突検出: " + String(motion.clash ? "あり" : "なし"));
-    Serial.println("- ダブルタップ検出: " + String(motion.dtap ? "あり" : "なし"));
-    Serial.println("- 姿勢検出: " + String(motion.attitude));
+    M5.Log.println("------------------------------------------");
+    M5.Log.printf("- 水平検出: %s\n", motion.flat ? "水平" : "水平でない");
+    M5.Log.printf("- 衝突検出: %s\n", motion.clash ? "あり" : "なし");
+    M5.Log.printf("- ダブルタップ検出: %s\n", motion.dtap ? "あり" : "なし");
+    M5.Log.printf("- 姿勢検出: %d\n",  motion.attitude);
   });
 }
 
@@ -1032,7 +1052,7 @@ No. | 変数名         | 型        | 必須   | 説明
 7   | `target_num`     | `uint16_t`  | ✔     | ターゲット座標の数(`1` ～ `29`)
 8   | `target_positions` | `ToioCoreTargetPos *`  | ✔     | ターゲット座標の配列へのポインタ
 
-要確認:目標地点5個は動いた。 29個っていける？
+要確認:目標地点5個は動いたことを確認。toio core cubeの仕様上は29個が上限だが未確認。
 
 
 #### コードサンプル
@@ -1123,7 +1143,7 @@ No. | 変数名   | 型                 | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -1145,12 +1165,12 @@ void setup() {
 
   // モーター制御の応答イベントのコールバックをセット
   toiocore->onMotor([](ToioCoreMotorResponse motor_res) {
-    Serial.print("Motor Event ");
-    Serial.print("Type=" + String(motor_res.controlType));
+    M5.Log.printf("Motor Event ");
+    M5.Log.print(f"Type=%u", motor_res.controlType);
     if(motor_res.controlType == 0xe0 )
-      Serial.println( ", left speed=" + String(motor_res.controlID) + ", right speed=" + String(motor_res.response));
+      M5.Log.printf( ", left speed=%u, right speed=%u\n", motor_res.controlID, motor_res.response);
     else
-      Serial.println( ", controlID=" + String(motor_res.controlID) + ", response=" + String(motor_res.response));
+      M5.Log.printf( ", controlID=%u, response=%u\n", motor_res.controlID, motor_res.response);
   });  
 }
 
@@ -1235,15 +1255,14 @@ Standard IDの値については[Standard ID 一覧](https://toio.github.io/toio
 ```c++
 ToioCoreIDData data = toiocore->getIDReaderData();
 if (data.type == ToioCoreIDTypePosition) {
-  Serial.println("posX: " + String(data.position.cubePosX)
-  + " posY: " + String(data.position.cubePosY)
-  + " angle: " + String(data.position.cubeAngleDegree));
+  M5.Log.printf("posX: %u posY: %u angle: %u\n",
+    data.position.cubePosX, data.position.cubePosY, data.position.cubeAngleDegree);
 }
 else if (data.type == ToioCoreIDTypeStandard) {
-  Serial.println("Standard ID: " + String(data.standard.standardID));
+  M5.Log.printf("Standard ID: %u\n", data.standard.standardID);
 }
 else {
-  Serial.println("no id found.");
+  M5.Log.println("no id found.");
 }
 ```
 
@@ -1293,7 +1312,7 @@ No. | 変数名   | 型                 | 必須   | 説明
 コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
 
 ```c++
-#include <M5Stack.h>
+#include <M5Unified.h>
 #include <Toio.h>
 
 // Toio オブジェクト生成
@@ -1317,15 +1336,14 @@ void setup() {
   // ID読み取りイベントのコールバックをセット
   toiocore->onIDReaderData([](ToioCoreIDData data) {
     if (data.type == ToioCoreIDTypePosition) {
-      Serial.println("posX: " + String(data.position.cubePosX)
-      + " posY: " + String(data.position.cubePosY)
-      + " angle: " + String(data.position.cubeAngleDegree));
+      M5.Log.printf("posX: %u posY: %u angle: %u\n",
+        data.position.cubePosX, data.position.cubePosY, data.position.cubeAngleDegree);
     }
     else if (data.type == ToioCoreIDTypeStandard) {
-      Serial.println("Standard ID: " + String(data.standard.standardID));
+      M5.Log.printf("Standard ID: %u\n", data.standard.standardID);
     }
     else {
-      Serial.println("no id found.");
+      M5.Log.println("no id found.");
     }
   });
 }
@@ -1341,9 +1359,9 @@ void loop() {
 
 本ライブラリのインストールが完了すると、Arduino IDE のメニューバーの `ファイル` -> `スケッチ例` の中から `M5StackToio` が選択できるようになります。この中には以下の 5 つのサンプルが用意されています。
 
-このうち`basic`、`event`、`joystick_drive`はオリジナルのサンプルコードで [M5Stack Basic](https://www.switch-science.com/catalog/3647/) および [M5Stack Gray](https://www.switch-science.com/catalog/3648/) で動作します。
+このうち`basic`、`event`、`joystick_drive`はfutomiさんオリジナルのサンプルコードで [M5Stack Basic](https://www.switch-science.com/catalog/3647/) および [M5Stack Gray](https://www.switch-science.com/catalog/3648/) で動作します。
 
-`basic_test`、`event_test`、`event2_test`は、M5Unifiedライブラリを使っているので、ボタンが一つ以上あるM5Stack製コントローラ製品であれば動作します。(出力結果はLCDではなくシリアルポートに出力されます)
+`basic_test`、`event_test`、`event2_test`は、新たに加えたサンプルコードで、M5Unifiedライブラリを使っているので、ボタンが一つ以上あるM5Stack製コントローラ製品であれば動作します。(出力結果はLCDではなくシリアルポートに出力されます)
 
 ### `basic_test`
 
@@ -1364,6 +1382,7 @@ https://toio.github.io/toio-spec/docs/hardware_position_id
 
 オリジナルの`event`と同様に本ライブラリが提供するイベントをハンドリングするサンプルスケッチです。
 ただし、arduino ESP32ではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(ソースコードのコメントも参照)
+要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
 
 事前に toio コア キューブ の電源を入れてください。
 
@@ -1390,9 +1409,11 @@ toio コア キューブが接続された後、M5Stack の A ボタン押すと
 M5Stack の Aボタンを2秒以上押すと toio コア キューブとの BLE 接続を遮断または再接続します。
 
 arduino ESP32ではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(モーション、磁気、姿勢角度は同じcharacteristicを使うので１つにカウントします。)
+要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
 
 ---------------------------------------
 以下はfutomiさんのオリジナルのサンプルコード
+M5Stackの画面に動作ログを表示するため、画面を持った指定のM5Stackコントローラ製品で動かしてください。
 
 ### `basic`
 
@@ -1444,6 +1465,8 @@ BLE 接続中、ジョイスティックの z 軸を押すと、チャルメロ�
 * v1.0.0 (2023-12-24)
   * kenichi884版　サンプルコード、Readmeを微修正、以降の修正との区別のためv1.0.0タグつけ。
 
+* v1.0.1 (2023-12-24)
+  * kenichi884版　NimBLE使用に変更、サンプルコードののM5Sta.print()をM5.Log.printf()に変更
 ---------------------------------------
 ## <a id="References">リファレンス</a>
 

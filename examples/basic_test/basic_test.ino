@@ -6,14 +6,35 @@
   Toio ID read support   https://github.com/mhama
   Protocol v2.3.0 support  https://github.com/kenichi884 
 
+  --------------------------------------------------------------
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
+
+  This sample sketch was tested on M5Stack Atom S3, Atom S3 lite, and M5Capsule.
+  M5Unified, so it should also work with other M5Stack controllers with more than one button.
+  I think it works with other M5Stack controllers with more than one button.
+  Log.printf() of M5Unified is used for operation log. Log.printf() of M5Unified. By default, the logs appear on the serial port.
+
+  [How to use]
+
+  Turn on Toio Core Cube beforehand.
+
+  When M5Stack starts, it automatically scans Toio Core Cube.
+  If the Toio Core Cube is found, the device name and MAC address will appear in the M5Stack serial port log.
+  will appear in the M5Stack serial port log. If it is not found, press the reset button on the M5Stack button
+  If the Toio Core Cube is not found, press the Reset button on the M5Stack button again to reboot.
+
+  Once the Toio Core Cube is found, it will automatically make a BLE connection and
+  The Toio Core Cube will automatically connect to the BLE and execute a series of methods one after the other, displaying the results in the M5Stack's serial port log.
+
+  When the series of methods is completed, the BLE connection is automatically disconnected and terminated.
+
+  --------------------------------------------------------------
 
   このサンプルスケッチは M5Stack Atom S3、Atom S3 lite、M5Capsuleで動作確認しました。
   M5Unifiedを使っているので、ほかのボタンが一つ以上あるM5Stack製 Controllerでも
   動作すると思います。
-  動作ログはシリアルポートにprintln()しています。ESP32-S3以外の場合は
-  #define SERIAL_LOGの定義をUSBSerialからSerialに変更してください。
+  動作ログはM5UnifiedのM5.Log.printf()を使っています。デフォルトではシリアルポートに出ます。
 
   [使い方]
 
@@ -32,10 +53,6 @@
 #include <M5Unified.h>
 #include <Toio.h>
 
-// for ESP32-S3 model
-#define SERIAL_LOG USBSerial
-// #define SERIAL_LOG Serial
-
 #define TEST_SOUND 1
 #define TEST_BATTERY 1
 #define TEST_LED 1
@@ -49,46 +66,45 @@ Toio toio;
 void setup() {
   M5.begin();
   M5.Power.begin();
-  SERIAL_LOG.begin(115200);
-  SERIAL_LOG.println("M5StackToio");
+
+  M5.Log.printf("M5StackToio basic_test\n");
 
   // 3 秒間 Toio Core Cube をスキャン
-  SERIAL_LOG.println("Scanning your toio core...");
+  M5.Log.printf("Scanning your toio core...\n");
   std::vector<ToioCore*> toiocore_list = toio.scan(3);
 
   // 見つからなければ終了
   size_t n = toiocore_list.size();
   if (n == 0) {
-    SERIAL_LOG.println("No toio Core Cube was found. Turn on your Toio Core Cube, then press the reset button of your Toio Core Cube.");
+    M5.Log.printf("No toio Core Cube was found. Turn on your Toio Core Cube, then press the reset button of your Toio Core Cube.\n");
     return;
   }
 
   // 最初に見つかった Toio Core Cube の ToioCore オブジェクト
   ToioCore* toiocore = toiocore_list.at(0);
-  SERIAL_LOG.println("Your toio core was found:      ");
+  M5.Log.printf("Your toio core was found:      \n");
 
   // Toio Core のデバイス名と MAC アドレスを表示
-  SERIAL_LOG.println(String(toiocore->getName().c_str()) + " (" + String(toiocore->getAddress().c_str()) + ")");
+  M5.Log.printf("%s (%s)\n", toiocore->getName().c_str(), toiocore->getAddress().c_str());
 
   // BLE 接続開始
-  SERIAL_LOG.println("Connecting...");
+  M5.Log.printf("Connecting...\n");
 
   if (!toiocore->connect()) {
-    SERIAL_LOG.println("Failed to establish a BLE connection.");
+    M5.Log.printf("Failed to establish a BLE connection.\n");
     return;
   }
-  SERIAL_LOG.println("Connected.");
+  M5.Log.printf("Connected.\n");
   delay(3000);
 
   // BLE プロトコルバージョンを取得
-  SERIAL_LOG.println("Getting the BLE protocol version... ");
   std::string ble_ver = toiocore->getBleProtocolVersion();
-  SERIAL_LOG.println(ble_ver.c_str());
+  M5.Log.printf("Getting the BLE protocol version... %s\n", ble_ver.c_str());
   delay(3000);
 
 #if TEST_SOUND
   // MIDI を再生 (チャルメラ)
-  SERIAL_LOG.println("Play a MIDI...");
+  M5.Log.printf("Play a MIDI...\n");
   uint8_t charumera_data[39] = {
     3,             // Type of Sound control (MIDI)
     1,             // Repeat count
@@ -110,109 +126,106 @@ void setup() {
   delay(5000);
 
   // 効果音を再生 (11 パターン)
-  SERIAL_LOG.println("Play sound effects: Enter");
+  M5.Log.printf("Play sound effects: Enter\n");
   toiocore->playSoundEffect(0);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Selected");
+  M5.Log.printf("Play sound effects: Selected\n");
   toiocore->playSoundEffect(1);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Cancel");
+  M5.Log.printf("Play sound effects: Cancel\n");
   toiocore->playSoundEffect(2);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Cursor");
+  M5.Log.printf("Play sound effects: Cursor\n");
   toiocore->playSoundEffect(3);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Mat in");
+  M5.Log.printf("Play sound effects: Mat in\n");
   toiocore->playSoundEffect(4);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Mat out");
+  M5.Log.printf("Play sound effects: Mat out\n");
   toiocore->playSoundEffect(5);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Get 1");
+  M5.Log.printf("Play sound effects: Get 1\n");
   toiocore->playSoundEffect(6);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Get 2");
+  M5.Log.printf("Play sound effects: Get 2\n");
   toiocore->playSoundEffect(7);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Get 3");
+  M5.Log.printf("Play sound effects: Get 3\n");
   toiocore->playSoundEffect(8);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Effect 1");
+  M5.Log.printf("Play sound effects: Effect 1\n");
   toiocore->playSoundEffect(9);
   delay(3000);
 
-  SERIAL_LOG.println("Play sound effects: Effect 2");
+  M5.Log.printf("Play sound effects: Effect 2\n");
   toiocore->playSoundEffect(10);
   delay(3000);
 #endif // TEST_SOUND
 
 #if TEST_LED
   // LED を黄色で点灯
-  SERIAL_LOG.println("Turn on the LED: yellow");
+  M5.Log.printf("Turn on the LED: yellow\n");
   toiocore->turnOnLed(0xff, 0xff, 0x00);
   delay(5000);
 
   // LED を消灯
-  SERIAL_LOG.println("Turn off the LED");
+  M5.Log.printf("Turn off the LED\n");
   toiocore->turnOffLed();
   delay(5000);
 #endif // TEST_LED
 
 #if TEST_BATTERY
   // バッテリーレベルを取得
-  SERIAL_LOG.println("Getting the battery level...");
+  M5.Log.printf("Getting the battery level...\n");
   uint8_t batt_level = toiocore->getBatteryLevel();
-  SERIAL_LOG.println(String(batt_level) + "%");
+  M5.Log.printf(" %u%%\n", batt_level);
   delay(5000);
 #endif // TEST_BATTERY
 
 #if TEST_BUTTON
   // ボタン押下状態を取得
-  SERIAL_LOG.println("Getting the button state...");
+  M5.Log.printf("Getting the button state...\n");
   bool button_state = toiocore->getButtonState();
-  SERIAL_LOG.println(String(button_state));
+  M5.Log.printf(" %u\n", button_state);
   delay(5000);
 #endif // TEST_BUTTON
 
 #if TEST_MOTION_SENSOR
   // モーションセンサーの状態を取得
-  SERIAL_LOG.println("Getting the state of the motion sensor... ");
+  M5.Log.printf("Getting the state of the motion sensor... \n");
   ToioCoreMotionData motion = toiocore->getMotion();
-  SERIAL_LOG.println(
-    "flat=" + String(motion.flat) +
-    ", clash=" + String(motion.clash) +
-    ", dtap=" + String(motion.dtap) +
-    ", attitude=" + String(motion.attitude));
+  M5.Log.printf("flat=%u, clash=%u, dtap=%u, attitude=%u\n",
+    motion.flat, motion.clash, motion.dtap, motion.attitude);
   delay(5000);
 #endif // TEST_MOTION_SENSOR
 
 #if TEST_MOTOR
   // 右に曲がりながら進む (左右のモーターを個別に制御)
-  SERIAL_LOG.println("Turning to the right...");
+  M5.Log.printf("Turning to the right...\n");
   toiocore->controlMotor(true, 50, true, 40);
   delay(5000);
 
   // 停止
-  SERIAL_LOG.println("Stopping...");
+  M5.Log.printf("Stopping...\n");
   toiocore->controlMotor(true, 0, true, 0);
   delay(5000);
 
   // 2 秒間だけ左に曲がりながら進む (左右のモーターを個別に制御)
-  SERIAL_LOG.println("Turning to the left for 2 seconds");
+  M5.Log.printf("Turning to the left for 2 seconds\n");
   toiocore->controlMotor(true, 40, true, 50, 2000);
   delay(5000);
 
   // 目標指定付き移動
-  SERIAL_LOG.println("Move to (150, 200)");
+  M5.Log.printf("Move to (150, 200)\n");
   toiocore->controlMotorWithTarget(0, 0, 0, 100, 0, 150, 200, 0);
   delay(5000);
 
@@ -238,19 +251,22 @@ void setup() {
   pos[4].posY = 250;
   pos[4].angleDegree = 0;
   pos[4].angleAndRotation = 0;
-  SERIAL_LOG.println("Move to (250, 250) (250, 300) (300, 300)");
+  M5.Log.printf("Move to (250, 250) (250, 300) (300, 300)\n");
   toiocore->controlMotorWithMultipleTargets(0, 0, 0, 50, 0, 0, 5, pos);
   delay(5000);
 
   // 加速度指定付き移動
-  SERIAL_LOG.println("Acceleration Control");
+  M5.Log.printf("Acceleration Control\n");
   toiocore->controlMotorWithAcceleration(50, 15, 30, 0, 0, 0, 200);
   delay(5000);
 #endif // TEST_MOTOR
 
+  //空きヒープメモリサイズの確認
+  //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
+
   // BLE 切断
   toiocore->disconnect();
-  SERIAL_LOG.println("Disconnected");
+  M5.Log.printf("Disconnected\n");
 }
 
 void loop() {
