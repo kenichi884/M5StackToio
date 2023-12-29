@@ -73,9 +73,11 @@
 #include <M5Unified.h>
 #include <Toio.h>
 
+// Creaate Toio object.
 // Toio オブジェクト生成
 Toio toio;
 
+// Decreare a pointer variable for the discoverd ToioCore object.
 // 発見された ToioCore オブジェクトのポインタ変数を定義
 ToioCore* toiocore;
 
@@ -83,10 +85,12 @@ void setup() {
   M5.begin();
   M5.Log.printf("M5StackToio event2_test\n");
 
+  // Scan Toio Core Cubes in 3 seconds.
   // 3 秒間 Toio Core Cube をスキャン
   M5.Log.printf("Scanning your toio core...\n");
   std::vector<ToioCore*> toiocore_list = toio.scan(3);
 
+  // Exit if could not found any cubes.
   // 見つからなければ終了
   size_t n = toiocore_list.size();
   if (n == 0) {
@@ -94,13 +98,16 @@ void setup() {
     return;
   }
 
+  // Assign the ToioCore object of the first Toio Core Cube found.
   // 最初に見つかった Toio Core Cube の ToioCore オブジェクト
   toiocore = toiocore_list.at(0);
   M5.Log.printf("Your toio core was found:      \n");
 
+  // Print the Toio Core cube's device name and MAC address.
   // Toio Core のデバイス名と MAC アドレスを表示
   M5.Log.printf("%s (%s)\n", toiocore->getName().c_str(), toiocore->getAddress().c_str());
 
+  // Start BLE connection.
   // BLE 接続開始
   M5.Log.printf("Connecting...\n");
 
@@ -110,21 +117,28 @@ void setup() {
   }
   M5.Log.printf("Connected.\n");
   
+  // Set Connection event callback.
   // Connection イベントのコールバックをセット
   toiocore->onConnection([](bool state) {
     M5.Log.printf("Connection Event %s\n", state ? "Connected   " : "Disconnected");
   });
 
+  // BLE notifications registration seems to be limited up to 4, on arduino ESP32.
+  // https://github.com/espressif/arduino-esp32/issues/8015
+  // The following event callback sets can only be set to a total of four.
   // arduino ESP32では4つまでしかBLE notificationをregisterForNotify()できない
   // https://github.com/espressif/arduino-esp32/issues/8015
   // 以下のイベントコールバックのセットも合計4つまでしかセットできない。
 
+  // Identification sensor ID notification settings
   // 読み取りセンサーの ID 通知設定
   toiocore->setIDnotificationSettings(1, 1);
 
+  // Identification sensor ID missed notification settings
   // 読み取りセンサーの ID missed 通知設定
   toiocore->setIDmissedNotificationSettings(10);
   
+  // Set ID notification event callback.
   // 読み取りセンサーのイベントのコールバックをセット
   toiocore->onIDReaderData([](ToioCoreIDData id_data){
     M5.Log.printf("IDReader Event ");
@@ -142,15 +156,16 @@ void setup() {
       }
   });
 
+  // Magnetic sensor settings
   // 磁気センサーの設定
   // toiocore->setMagneticSensorSettings(1, 1, 1);  // 磁石の除隊を検出
   toiocore->setMagneticSensorSettings(2, 1, 1); // 磁力の強さを検出
 
-
+  // Posture angle detection settings
   // 姿勢角検出の設定
   toiocore->setPostureAngleDetectionSettings(1, 1); // 姿勢をオイラー格で検出
 
-
+  // Set motion event, magnetic sensor event, posture angle event callbacks.
   // Motion イベントと磁気センサーと姿勢角のコールバックをセット
   toiocore->onMotion(
     [](ToioCoreMotionData motion) {
@@ -166,7 +181,10 @@ void setup() {
       euler_angle.roll, euler_angle.pitch, euler_angle.yaw);
     }
   ); 
+
+  // Set nullptr to not used callback.
   // 不要なコールバックはnullptrをセットする  
+  // Example: If you need only magnetic sensor event.
   // 例 磁気だけ必要な場合
   /*
   toiocore->onMotion(
@@ -179,9 +197,11 @@ void setup() {
   ); 
   */
 
+  // Motor speed information acquisition settings
   // モーターの速度情報の取得を有効にする
   toiocore->setMotorSpeedInformationAcquistionSettings(true);
 
+  // Set motor event callback.
   // Motor イベントのコールバックをセット
   toiocore->onMotor([](ToioCoreMotorResponse motor_res) {
     M5.Log.printf("Motor Event Type=%u", motor_res.controlType);
@@ -191,28 +211,36 @@ void setup() {
       M5.Log.printf( ", controlID=%u, response=%u\n", motor_res.controlID, motor_res.response);
   });   
 
-  //空きヒープメモリサイズの確認
+  // Print free heap memory size.
+  // 空きヒープメモリサイズの確認
   //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
 }
 
 void loop() {
   M5.update();
 
+  // If you want to handle event callbacks, you shoud call loop() method  of Toio Object here.
   // イベントを扱う場合は、必ずここで Toio オブジェクトの
   // loop() メソッドを呼び出すこと
   toio.loop();
 
-  if (M5.BtnA.wasReleaseFor(2000)) { // M5Stack のボタン A が2秒長押しされたときの処理
+  // M5Stack のボタン A が2秒長押しされたときの処理
+  // When button A of M5Stack is pressed for 2 seconds
+  if (M5.BtnA.wasReleaseFor(2000)) { 
+    // Check the Toio Core Cube was connected or disconnected.
     // Toio Core Cube と BLE 接続中かどうかをチェック
     if (toiocore->isConnected()) {
       M5.Log.printf("try disconnect\n");
-      toiocore->disconnect(); // 接続中なら切断
+      toiocore->disconnect(); // If connected, disconnect. 接続中なら切断
     } else {
       M5.Log.printf("try connect\n");
-      toiocore->connect(); // 切断中なら接続
+      toiocore->connect(); // If not connected, connect. 接続していないなら接続
     }
-  } else if(M5.BtnA.wasReleased()) { // M5Stack のボタン A が押されたときの処理
+  // When button A of M5Stack was pressed.
+  // M5Stack のボタン A が押されたときの処理
+  } else if(M5.BtnA.wasReleased()) { 
     M5.Log.printf("start motor\n");
+    // Move with acceleration specified, to test obtaining motor speed(Motor event callback) will work.
     // 加速度指定付き移動 速度変化イベント(Motor イベントのコールバック)がくるかどうかのテスト用
     M5.Log.printf("Acceleration Control\n");
     toiocore->controlMotorWithAcceleration(50, 15, 30, 0, 0, 0, 200);

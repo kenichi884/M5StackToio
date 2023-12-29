@@ -60,6 +60,7 @@
 #define TEST_MOTION_SENSOR 1
 #define TEST_MOTOR 1
 
+// Creaate Toio object.
 // Toio オブジェクト生成
 Toio toio;
 
@@ -69,10 +70,12 @@ void setup() {
 
   M5.Log.printf("M5StackToio basic_test\n");
 
+  // Scan Toio Core Cubes in 3 seconds.
   // 3 秒間 Toio Core Cube をスキャン
   M5.Log.printf("Scanning your toio core...\n");
   std::vector<ToioCore*> toiocore_list = toio.scan(3);
-
+  
+  // Exit if could not found any cubes.
   // 見つからなければ終了
   size_t n = toiocore_list.size();
   if (n == 0) {
@@ -80,13 +83,16 @@ void setup() {
     return;
   }
 
+  // Assign the ToioCore object of the first Toio Core Cube found.
   // 最初に見つかった Toio Core Cube の ToioCore オブジェクト
   ToioCore* toiocore = toiocore_list.at(0);
   M5.Log.printf("Your toio core was found:      \n");
 
+  // Print the Toio Core cube's device name and MAC address.
   // Toio Core のデバイス名と MAC アドレスを表示
   M5.Log.printf("%s (%s)\n", toiocore->getName().c_str(), toiocore->getAddress().c_str());
 
+  // Start BLE connection.
   // BLE 接続開始
   M5.Log.printf("Connecting...\n");
 
@@ -97,12 +103,14 @@ void setup() {
   M5.Log.printf("Connected.\n");
   delay(3000);
 
+  // Get the BLE protocol version of the Toio core cube.
   // BLE プロトコルバージョンを取得
   std::string ble_ver = toiocore->getBleProtocolVersion();
   M5.Log.printf("Getting the BLE protocol version... %s\n", ble_ver.c_str());
   delay(3000);
 
 #if TEST_SOUND
+  // Play the MIDI note numbers (Charmera, Musical instruments used at traditional Japanese ramen stalls.)
   // MIDI を再生 (チャルメラ)
   M5.Log.printf("Play a MIDI...\n");
   uint8_t charumera_data[39] = {
@@ -125,6 +133,7 @@ void setup() {
   toiocore->playSoundRaw(charumera_data, 39);
   delay(5000);
 
+  // Play sound effects (11 patterns)
   // 効果音を再生 (11 パターン)
   M5.Log.printf("Play sound effects: Enter\n");
   toiocore->playSoundEffect(0);
@@ -172,11 +181,13 @@ void setup() {
 #endif // TEST_SOUND
 
 #if TEST_LED
+  // Turn the indicator on.(yellow)
   // LED を黄色で点灯
   M5.Log.printf("Turn on the LED: yellow\n");
   toiocore->turnOnLed(0xff, 0xff, 0x00);
   delay(5000);
 
+  // Turn the indicator off.
   // LED を消灯
   M5.Log.printf("Turn off the LED\n");
   toiocore->turnOffLed();
@@ -184,6 +195,7 @@ void setup() {
 #endif // TEST_LED
 
 #if TEST_BATTERY
+  // Get the battery level.
   // バッテリーレベルを取得
   M5.Log.printf("Getting the battery level...\n");
   uint8_t batt_level = toiocore->getBatteryLevel();
@@ -192,6 +204,7 @@ void setup() {
 #endif // TEST_BATTERY
 
 #if TEST_BUTTON
+  // Get the button state.
   // ボタン押下状態を取得
   M5.Log.printf("Getting the button state...\n");
   bool button_state = toiocore->getButtonState();
@@ -200,6 +213,7 @@ void setup() {
 #endif // TEST_BUTTON
 
 #if TEST_MOTION_SENSOR
+  // Get the motion detection information.
   // モーションセンサーの状態を取得
   M5.Log.printf("Getting the state of the motion sensor... \n");
   ToioCoreMotionData motion = toiocore->getMotion();
@@ -209,26 +223,31 @@ void setup() {
 #endif // TEST_MOTION_SENSOR
 
 #if TEST_MOTOR
+  // Proceed while turning to the right. (Control left and right motors individually.)
   // 右に曲がりながら進む (左右のモーターを個別に制御)
   M5.Log.printf("Turning to the right...\n");
   toiocore->controlMotor(true, 50, true, 40);
   delay(5000);
 
+  // Stop the motors.
   // 停止
   M5.Log.printf("Stopping...\n");
   toiocore->controlMotor(true, 0, true, 0);
   delay(5000);
 
+  // Proceed while turning left for only 2 seconds (Control left and right motors individually.)
   // 2 秒間だけ左に曲がりながら進む (左右のモーターを個別に制御)
   M5.Log.printf("Turning to the left for 2 seconds\n");
   toiocore->controlMotor(true, 40, true, 50, 2000);
   delay(5000);
 
+  // Move to the specified target.
   // 目標指定付き移動
   M5.Log.printf("Move to (150, 200)\n");
   toiocore->controlMotorWithTarget(0, 0, 0, 100, 0, 150, 200, 0);
   delay(5000);
 
+  // Move to the specified multiple targets.
   // 複数目標指定付き移動
   ToioCoreTargetPos pos[5];
   pos[0].posX = 250;
@@ -255,15 +274,18 @@ void setup() {
   toiocore->controlMotorWithMultipleTargets(0, 0, 0, 50, 0, 0, 5, pos);
   delay(5000);
 
+  // Move with acceleration specified.
   // 加速度指定付き移動
   M5.Log.printf("Acceleration Control\n");
   toiocore->controlMotorWithAcceleration(50, 15, 30, 0, 0, 0, 200);
   delay(5000);
 #endif // TEST_MOTOR
 
-  //空きヒープメモリサイズの確認
+  // Print free heap memory size.
+  // 空きヒープメモリサイズの確認
   //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
 
+  // Disconnect the BLE connection.
   // BLE 切断
   toiocore->disconnect();
   M5.Log.printf("Disconnected\n");
