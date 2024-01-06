@@ -216,6 +216,7 @@ class ToioCore {
     BLERemoteCharacteristic* _char_motor;
     BLERemoteCharacteristic* _char_id_reader;
 
+
     OnConnectionCallback _onconnection;
     OnButtonCallback _onbutton;
     OnBatteryCallback _onbattery;
@@ -224,6 +225,13 @@ class ToioCore {
     OnMagneticSensorCallback _onmagneticsensor;
     OnIDDataCallback _on_id_reader;
     OnMotorCallback _onmotor;
+
+  public:  ///  ToioClientCallbackからアクセスするため
+    void setConnectionFlags(BLEClient *client);
+  private:
+    bool _event_connection_updated;
+    BLEClient* _current_client;
+    BLEClient* _last_client;
 
   private:
     void _wait(const unsigned long msec);
@@ -238,12 +246,10 @@ class ToioCore {
   public:
     // コンストラクタ
   
- 
     ToioCore(BLEAdvertisedDevice& device);
 
-
     // デストラクタ
-    ~ToioCore();
+    virtual ~ToioCore();
 
     // アドレスを取得
     std::string getAddress();

@@ -10,14 +10,9 @@
   See LICENSE file in the project root for full license information.
   -------------------------------------------------------------- */
 #include "ToioCore.h"
-
 // ===============================================================
 // ToioCore クラス
 // ===============================================================
-
-static bool g_event_connection_updated = false;
-static BLEClient* g_current_client = nullptr;
-static BLEClient* g_last_client = nullptr;
 
 static bool g_event_battery_updated = false;
 static uint8_t g_event_battery_level = 0;
@@ -45,15 +40,18 @@ static ToioCoreMotorResponse g_event_motor_response = {0x00, 0x00, 0x00};
 
 // BLE 接続状態変化のコールバック
 class ToioClientCallback : public BLEClientCallbacks {
-    void onConnect(BLEClient* client) {
-      g_current_client = client;
-      g_last_client = client;
-      g_event_connection_updated = true;
-    }
-    void onDisconnect(BLEClient* client) {
-      g_current_client = nullptr;
-      g_event_connection_updated = true;
-    }
+  ToioCore *toiocore;
+  public:
+  ToioClientCallback(ToioCore *p)
+  {
+    toiocore = p;
+  }
+  void onConnect(BLEClient* client) {
+    toiocore->setConnectionFlags(client);
+  }
+  void onDisconnect(BLEClient* client) {
+    toiocore->setConnectionFlags(nullptr);
+  }
 };
 
 // ---------------------------------------------------------------
@@ -73,7 +71,11 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_on_id_reader = nullptr;
   this->_onmotor = nullptr;
 
-  client->setClientCallbacks(new ToioClientCallback());
+  this->_event_connection_updated = false;
+  this->_current_client = nullptr;
+  this->_last_client = nullptr;
+
+  client->setClientCallbacks(new ToioClientCallback(this));
 }
 
 // ---------------------------------------------------------------
@@ -209,7 +211,7 @@ void ToioCore::disconnect() {
 // 接続状態を返す
 // ---------------------------------------------------------------
 bool ToioCore::isConnected() {
-  return (g_current_client && g_current_client == this->_client) ? true : false;
+  return (this->_current_client && this->_current_client == this->_client) ? true : false;
 }
 
 // ---------------------------------------------------------------
@@ -217,6 +219,23 @@ bool ToioCore::isConnected() {
 // ---------------------------------------------------------------
 void ToioCore::onConnection(OnConnectionCallback cb) {
   this->_onconnection = cb;
+}
+
+// ---------------------------------------------------------------
+// ConnectCallbackから呼び出される
+// ---------------------------------------------------------------
+void ToioCore::setConnectionFlags(BLEClient *client) {
+  if(client == nullptr){
+    // disconnected
+    this->_current_client = nullptr;
+    this->_event_connection_updated = true;
+  } else {
+    // connected
+    this->_current_client = client;
+    this->_last_client = client;
+    this->_event_connection_updated = true;
+
+  }
 }
 
 // ---------------------------------------------------------------
@@ -300,8 +319,8 @@ void ToioCore::onBattery(OnBatteryCallback cb) {
     return;
   }
   if(cb != nullptr){
-    this->_char_battery->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-      if (!g_current_client) {
+    this->_char_battery->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
         return;
       }
       if (len != 1) {
@@ -341,8 +360,8 @@ void ToioCore::onButton(OnButtonCallback cb) {
     return;
   }
   if(cb != nullptr){
-    this->_char_button->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-      if (!g_current_client) {
+    this->_char_button->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
         return;
       }
       if (len != 2) {
@@ -389,8 +408,8 @@ void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, On
     return;
   }
   if((cb != nullptr) || (mag_cb != nullptr) || (euler_cb != nullptr)) {
-    this->_char_motion->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-      if (!g_current_client) {
+    this->_char_motion->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
         return;
       }
       if(data[0] == 0x01){
@@ -708,8 +727,8 @@ void ToioCore::onMotor(OnMotorCallback cb) {
     return;
   }
   if(cb != nullptr){
-    this->_char_motor->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-      if (!g_current_client) {
+    this->_char_motor->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
         return;
       }
       
@@ -735,11 +754,13 @@ void ToioCore::onMotor(OnMotorCallback cb) {
 ToioCoreIDData ToioCore::getIDReaderData() {
   ToioCoreIDData res;
   if (!this->isConnected()) {
-    return res;
+    memset(&res, 0, sizeof(ToioCoreIDData));
+    return res; // 不定値
   }
   std::string data = this->_char_id_reader->readValue();
   if (data.size() > 0 && data[0] == 0x03 || data[0] == 0x04) {
     // no data
+    memset(&res, 0, sizeof(ToioCoreIDData));
     return res;
   }
   if (!_convertBLEBytesToIDData((const uint8_t *) data.c_str(), data.size(), res)) {
@@ -757,8 +778,8 @@ void ToioCore::onIDReaderData(OnIDDataCallback cb) {
     return;
   }
   if(cb != nullptr){
-    this->_char_id_reader->registerForNotify([](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
-      if (!g_current_client) {
+    this->_char_id_reader->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
         return;
       }
       if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
@@ -785,23 +806,23 @@ void ToioCore::onIDReaderData(OnIDDataCallback cb) {
 // ---------------------------------------------------------------
 void ToioCore::_loop() {
   // 接続状態イベント
-  if (g_event_connection_updated) {
-    if (g_last_client == this->_client) {
+  if (this->_event_connection_updated) {
+    if (this->_last_client == this->_client) {
       bool event_connection_state = false;
-      if (g_current_client) {
+      if (this->_current_client) {
         event_connection_state = true;
       } else {
-        g_last_client = nullptr;
+        this->_last_client = nullptr;
       }
       if (this->_onconnection) {
         this->_onconnection(event_connection_state);
       }
-      g_event_connection_updated = false;
+      this->_event_connection_updated = false;
     }
   }
 
   // 未接続または接続中の ToioCore が自分自身でないなら、以降の処理は不要なので終了
-  if (!this->isConnected() || g_current_client != this->_client) {
+  if (!this->isConnected() || this->_current_client != this->_client) {
     return;
   }
 
