@@ -2,7 +2,7 @@
   ToioCore.cpp
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
-  https://github.com/futomi
+  Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
   Protocol v2.3.0 support  https://github.com/kenichi84 
 
@@ -13,30 +13,6 @@
 // ===============================================================
 // ToioCore クラス
 // ===============================================================
-
-static bool g_event_battery_updated = false;
-static uint8_t g_event_battery_level = 0;
-
-static bool g_event_button_updated = false;
-static bool g_event_button_state = false;
-
-static bool g_event_motion_updated = false;
-static ToioCoreMotionData g_event_motion_data = {0x00, 0x00, 0x00, 0x00, 0x00};
-
-static bool g_event_posture_angle_euler_updated = false;
-static ToioCorePostureAngleEuler g_event_posture_angle_euler_data = {0, 0, 0};
-
-static bool g_event_posture_angle_quaternion_updated = false;
-static ToioCorePostureAngleQuaternion g_event_posture_angle_quaternion_data = {0, 0, 0, 0};
-
-static bool g_event_magnetic_sensor_updated = false;
-static ToioCoreMagneticSensorData g_event_magnetic_sensor_data = {0, 0, 0, 0, 0};
-
-static bool g_event_id_data_updated = false;
-static ToioCoreIDData g_event_id_data;
-
-static bool g_event_motor_updated = false;
-static ToioCoreMotorResponse g_event_motor_response = {0x00, 0x00, 0x00};
 
 // BLE 接続状態変化のコールバック
 class ToioClientCallback : public BLEClientCallbacks {
@@ -74,6 +50,23 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_event_connection_updated = false;
   this->_current_client = nullptr;
   this->_last_client = nullptr;
+
+  this->_event_battery_updated = false;
+  this->_event_battery_level = 0;
+  this->_event_motion_updated = false;
+  this->_event_motion_data = {0x00, 0x00, 0x00, 0x00, 0x00};
+  this->_event_posture_angle_euler_updated = false;
+  this->_event_posture_angle_euler_data = {0, 0, 0};
+  this->_event_posture_angle_quaternion_updated = false;
+  this->_event_posture_angle_quaternion_data = {0, 0, 0, 0};
+  this->_event_magnetic_sensor_updated = false;
+  this->_event_magnetic_sensor_data = {0, 0, 0, 0, 0};
+  this->_event_id_data_updated = false;
+  this->_event_id_data.type = ToioCoreIDTypeNone;
+  this->_event_id_data.position = {0, 0, 0, 0, 0, 0};
+  this->_event_id_data.standard = {0, 0};
+  this->_event_motor_updated = false;
+  this->_event_motor_response = {0x00, 0x00, 0x00};
 
   client->setClientCallbacks(new ToioClientCallback(this));
 }
@@ -115,13 +108,13 @@ bool ToioCore::connect() {
     return false;
   }
 
-  g_event_battery_updated = false;
-  g_event_battery_level = 0;
+  this->_event_battery_updated = false;
+  this->_event_battery_level = 0;
 
-  g_event_button_updated = false;
-  g_event_button_state = false;
+  this->_event_button_updated = false;
+  this->_event_button_state = false;
   
-  g_event_motor_updated = false;
+  this->_event_motor_updated = false;
 
   // Service を取得
   BLERemoteService* service = this->_client->getService(this->_TOIO_SERVICE_UUID);
@@ -195,8 +188,8 @@ bool ToioCore::connect() {
     return false;
   }
 
-  // 1000 ミリ秒待つ
-  this->_wait(1000);
+  // 300 ミリ秒待つ
+  this->_wait(300);
   return true;
 }
 
@@ -327,8 +320,8 @@ void ToioCore::onBattery(OnBatteryCallback cb) {
         return;
       }
       uint8_t level = data[0];
-      g_event_battery_level = level;
-      g_event_battery_updated = true;
+      this->_event_battery_level = level;
+      this->_event_battery_updated = true;
     });
   } else {
     this->_char_battery->registerForNotify(nullptr);
@@ -371,8 +364,8 @@ void ToioCore::onButton(OnButtonCallback cb) {
         return;
       }
       bool state = (data[1] == 0x80) ? true : false;
-      g_event_button_state = state;
-      g_event_button_updated = true;
+      this->_event_button_state = state;
+      this->_event_button_updated = true;
     });
   } else {
     this->_char_button->registerForNotify(nullptr);
@@ -416,34 +409,34 @@ void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, On
         if (len != 6) {
           return;
         }
-        g_event_motion_data.flat = data[1];
-        g_event_motion_data.clash = data[2];
-        g_event_motion_data.dtap = data[3];
-        g_event_motion_data.attitude = data[4];
-        g_event_motion_data.shake = data[5];
-        g_event_motion_updated = true;
+        this->_event_motion_data.flat = data[1];
+        this->_event_motion_data.clash = data[2];
+        this->_event_motion_data.dtap = data[3];
+        this->_event_motion_data.attitude = data[4];
+        this->_event_motion_data.shake = data[5];
+        this->_event_motion_updated = true;
       } else if(data[0] == 0x03){ // posture  angle
         if(data[1] == 0x01){
-          g_event_posture_angle_euler_data.roll = *(int16_t *) &data[2];
-          g_event_posture_angle_euler_data.pitch = *(int16_t *) &data[4];
-          g_event_posture_angle_euler_data.yaw = *(int16_t *) &data[6];
-          g_event_posture_angle_euler_updated = true;
+          this->_event_posture_angle_euler_data.roll = *(int16_t *) &data[2];
+          this->_event_posture_angle_euler_data.pitch = *(int16_t *) &data[4];
+          this->_event_posture_angle_euler_data.yaw = *(int16_t *) &data[6];
+          this->_event_posture_angle_euler_updated = true;
         }else if (data[1] == 0x02){
-          g_event_posture_angle_quaternion_data.w = *(int16_t *) &data[2];
-          g_event_posture_angle_quaternion_data.x = *(int16_t *) &data[4];
-          g_event_posture_angle_quaternion_data.y = *(int16_t *) &data[6];
-          g_event_posture_angle_quaternion_data.z = *(int16_t *) &data[8];
-          g_event_posture_angle_quaternion_updated = true;
+          this->_event_posture_angle_quaternion_data.w = *(int16_t *) &data[2];
+          this->_event_posture_angle_quaternion_data.x = *(int16_t *) &data[4];
+          this->_event_posture_angle_quaternion_data.y = *(int16_t *) &data[6];
+          this->_event_posture_angle_quaternion_data.z = *(int16_t *) &data[8];
+          this->_event_posture_angle_quaternion_updated = true;
         } else {
           return;
         }
       } else if(data[0] == 0x02){ // magnetic sensor
-        g_event_magnetic_sensor_data.state = data[1];
-        g_event_magnetic_sensor_data.strength = data[2];
-        g_event_magnetic_sensor_data.x = data[3];
-        g_event_magnetic_sensor_data.y = data[4];
-        g_event_magnetic_sensor_data.z = data[5];
-        g_event_magnetic_sensor_updated = true;
+        this->_event_magnetic_sensor_data.state = data[1];
+        this->_event_magnetic_sensor_data.strength = data[2];
+        this->_event_magnetic_sensor_data.x = data[3];
+        this->_event_magnetic_sensor_data.y = data[4];
+        this->_event_magnetic_sensor_data.z = data[5];
+        this->_event_magnetic_sensor_updated = true;
       }
     });
   } else {
@@ -735,11 +728,11 @@ void ToioCore::onMotor(OnMotorCallback cb) {
       if (len != 3) {
         return;
       }
-      g_event_motor_response.controlType = data[0];
-      g_event_motor_response.controlID = data[1];
-      g_event_motor_response.response = data[2];
+      this->_event_motor_response.controlType = data[0];
+      this->_event_motor_response.controlID = data[1];
+      this->_event_motor_response.response = data[2];
 
-      g_event_motor_updated = true;
+      this->_event_motor_updated = true;
     });
   } else {
     this->_char_motor->registerForNotify(nullptr);
@@ -784,16 +777,16 @@ void ToioCore::onIDReaderData(OnIDDataCallback cb) {
       }
       if (len > 0 && data[0] == 0x03 || data[0] == 0x04) {
         // no data
-        g_event_id_data.type = ToioCoreIDTypeNone;
-        g_event_id_data_updated = true;
+        this->_event_id_data.type = ToioCoreIDTypeNone;
+        this->_event_id_data_updated = true;
         return;
       }
 
-      if (!ToioCore::_convertBLEBytesToIDData(data, len, g_event_id_data)) {
+      if (!ToioCore::_convertBLEBytesToIDData(data, len, this->_event_id_data)) {
         // wrong data
         return;
       }
-      g_event_id_data_updated = true;
+      this->_event_id_data_updated = true;
     });
   } else {
     this->_char_id_reader->registerForNotify(nullptr);
@@ -827,59 +820,59 @@ void ToioCore::_loop() {
   }
 
   // バッテリーイベント
-  if (g_event_battery_updated) {
+  if (this->_event_battery_updated) {
     if (this->_onbattery) {
-      this->_onbattery(g_event_battery_level);
-      g_event_battery_updated = false;
+      this->_onbattery(this->_event_battery_level);
+      this->_event_battery_updated = false;
     }
   }
 
   // ボタンイベント
-  if (g_event_button_updated) {
+  if (this->_event_button_updated) {
     if (this->_onbutton) {
-      this->_onbutton(g_event_button_state);
-      g_event_button_updated = false;
+      this->_onbutton(this->_event_button_state);
+      this->_event_button_updated = false;
     }
   }
 
   // モーションセンサーイベント
-  if (g_event_motion_updated) {
+  if (this->_event_motion_updated) {
     if (this->_onmotion) {
-      this->_onmotion(g_event_motion_data);
-      g_event_motion_updated = false;
+      this->_onmotion(this->_event_motion_data);
+      this->_event_motion_updated = false;
     }
   }
 
   // 磁気センサーイベント
-  if(g_event_magnetic_sensor_updated) {
+  if(this->_event_magnetic_sensor_updated) {
      if (this->_onmagneticsensor) {
-      this->_onmagneticsensor(g_event_magnetic_sensor_data);
-      g_event_magnetic_sensor_updated = false;
+      this->_onmagneticsensor(this->_event_magnetic_sensor_data);
+      this->_event_magnetic_sensor_updated = false;
     }
   } 
 
   // 姿勢角イベント
-  if (g_event_posture_angle_euler_updated) {
+  if (this->_event_posture_angle_euler_updated) {
     if (this->_onpostureangleeuler) {
-      this->_onpostureangleeuler(g_event_posture_angle_euler_data);
-      g_event_posture_angle_euler_updated = false;
+      this->_onpostureangleeuler(this->_event_posture_angle_euler_data);
+      this->_event_posture_angle_euler_updated = false;
     }
   }
   
 
   // ID読み取りセンサーイベント
-  if (g_event_id_data_updated) {
+  if (this->_event_id_data_updated) {
     if (this->_on_id_reader) {
-      this->_on_id_reader(g_event_id_data);
+      this->_on_id_reader(this->_event_id_data);
     }
-    g_event_id_data_updated = false;
+    this->_event_id_data_updated = false;
   }
 
   // モーター制御イベント
-  if (g_event_motor_updated) {
+  if (this->_event_motor_updated) {
     if (this->_onmotor) {
-      this->_onmotor(g_event_motor_response);
-      g_event_motor_updated = false;
+      this->_onmotor(this->_event_motor_response);
+      this->_event_motor_updated = false;
     }
   }
 }

@@ -2,8 +2,10 @@
   Toio.cpp
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
-  https://github.com/futomi
-
+  Original https://github.com/futomi
+  Toio ID read support   https://github.com/mhama
+  Protocol v2.3.0 and NimBLE support   https://github
+  
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
   -------------------------------------------------------------- */

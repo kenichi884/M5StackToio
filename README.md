@@ -83,6 +83,13 @@ PlatformIOではplatformio.iniのenv:セクションのlib_depsオプション�
 h2zero/NimBLE-Arduino@^1.4.1
 ```
 
+NimBLEのデフォルト設定では接続できる最大数が3に設定されています。
+4つ以上のtoio core cubeを接続する場合はnimconfig.hの#define CONFIG_BT_NIMBLE_MAX_CONNECTIONSの値を変更してください。
+```
+/** @brief Un-comment to change the number of simultaneous connections (esp controller max is 9) */
+#define CONFIG_BT_NIMBLE_MAX_CONNECTIONS 3
+```
+
 元のBLEスタックを使いたい場合はToioCore.hの #define USE_NIMBLE 1 を無効にしてください。
 ```
 #define USE_NIMBLE 1
@@ -1408,7 +1415,7 @@ toio コア キューブが接続された後、M5Stack の A ボタン押すと
 
 M5Stack の Aボタンを2秒以上押すと toio コア キューブとの BLE 接続を遮断または再接続します。
 
-arduino ESP32ではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(モーション、磁気、姿勢角度は同じcharacteristicを使うので１つにカウントします。)
+arduino ESP32のデフォルトのBLEライブラリではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(モーション、磁気、姿勢角度は同じcharacteristicを使うので１つにカウントします。)
 要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
 
 ---------------------------------------
@@ -1467,11 +1474,15 @@ BLE 接続中、ジョイスティックの z 軸を押すと、チャルメロ�
 
 * v1.0.1 (2023-12-24)
   * kenichi884版　NimBLE使用に変更、サンプルコードののM5Sta.print()をM5.Log.printf()に変更
+
+* v1.0.2 (2024-01-07)
+  * kenichi884版　複数のtoio core cubeを接続した場合、get系メソッド、イベント(notify)が個別のtoio core cubeの情報を返していなかったのを修正
 ---------------------------------------
 ## <a id="References">リファレンス</a>
 
 * [toio 公式ページ](https://toio.io/)
 * [toio コア キューブ 技術仕様](https://toio.github.io/toio-spec/)
+* [toio Core Cube Specifications](https://toio.github.io/toio-spec/en/)
 * [M5Stack](https://m5stack.com/)
   * [ESP32 Basic Core IoT Development Kit](https://m5stack.com/collections/m5-core/products/basic-core-iot-development-kit)
   * [ESP32 GREY Development Kit with 9Axis Sensor](https://m5stack.com/collections/m5-core/products/grey-development-core)

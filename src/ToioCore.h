@@ -2,7 +2,7 @@
   ToioCore.h
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
-  https://github.com/futomi
+  Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
   Protocol v2.3.0 and NimBLE support  https://github.com/kenichi84 
 
@@ -232,6 +232,23 @@ class ToioCore {
     bool _event_connection_updated;
     BLEClient* _current_client;
     BLEClient* _last_client;
+
+    bool _event_battery_updated;
+    uint8_t _event_battery_level;
+    bool _event_button_updated;
+    bool _event_button_state;
+    bool _event_motion_updated;
+    ToioCoreMotionData _event_motion_data;
+    bool _event_posture_angle_euler_updated;
+    ToioCorePostureAngleEuler _event_posture_angle_euler_data;
+    bool _event_posture_angle_quaternion_updated;
+    ToioCorePostureAngleQuaternion _event_posture_angle_quaternion_data;
+    bool _event_magnetic_sensor_updated;
+    ToioCoreMagneticSensorData _event_magnetic_sensor_data;
+    bool _event_id_data_updated;
+    ToioCoreIDData _event_id_data;
+    bool _event_motor_updated;
+    ToioCoreMotorResponse _event_motor_response;
 
   private:
     void _wait(const unsigned long msec);

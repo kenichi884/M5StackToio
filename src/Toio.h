@@ -2,7 +2,7 @@
   Toio.h
 
   Copyright (c) 2020 Futomi Hatano. All right reserved.
-  https://github.com/futomi
+  Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
   Protocol v2.3.0 and NimBLE support   https://github.com/kenichi84 
 
