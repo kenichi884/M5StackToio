@@ -158,12 +158,12 @@ void setup() {
 
   // Magnetic sensor settings
   // 磁気センサーの設定
-  // toiocore->setMagneticSensorSettings(1, 1, 1);  // 磁石の除隊を検出
+  // toiocore->setMagneticSensorSettings(1, 1, 1);  // 磁石の状態を検出
   toiocore->setMagneticSensorSettings(2, 1, 1); // 磁力の強さを検出
 
   // Posture angle detection settings
   // 姿勢角検出の設定
-  toiocore->setPostureAngleDetectionSettings(1, 1); // 姿勢をオイラー格で検出
+  toiocore->setPostureAngleDetectionSettings(1, 1); // 姿勢をオイラー角で検出
 
   // Set motion event, magnetic sensor event, posture angle event callbacks.
   // Motion イベントと磁気センサーと姿勢角のコールバックをセット
