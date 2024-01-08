@@ -1364,11 +1364,11 @@ void loop() {
 ---------------------------------------
 ## <a id="Sample-Sketches">6. サンプルスケッチ</a>
 
-本ライブラリのインストールが完了すると、Arduino IDE のメニューバーの `ファイル` -> `スケッチ例` の中から `M5StackToio` が選択できるようになります。この中には以下の 5 つのサンプルが用意されています。
+本ライブラリのインストールが完了すると、Arduino IDE のメニューバーの `ファイル` -> `スケッチ例` の中から `M5StackToio` が選択できるようになります。この中には以下の 6 つのサンプルが用意されています。
 
 このうち`basic`、`event`、`joystick_drive`はfutomiさんオリジナルのサンプルコードで [M5Stack Basic](https://www.switch-science.com/catalog/3647/) および [M5Stack Gray](https://www.switch-science.com/catalog/3648/) で動作します。
 
-`basic_test`、`event_test`、`event2_test`は、新たに加えたサンプルコードで、M5Unifiedライブラリを使っているので、ボタンが一つ以上あるM5Stack製コントローラ製品であれば動作します。(出力結果はLCDではなくシリアルポートに出力されます)
+`basic_test`、`event_test`、`event2_test`、`multi_corecube_test`は、新たに加えたサンプルコードで、M5Unifiedライブラリを使っているので、ボタンが一つ以上あるM5Stack製コントローラ製品であれば動作します。(出力結果はLCDではなくシリアルポートに出力されます)
 
 ### `basic_test`
 
@@ -1417,6 +1417,25 @@ M5Stack の Aボタンを2秒以上押すと toio コア キューブとの BLE 
 
 arduino ESP32のデフォルトのBLEライブラリではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(モーション、磁気、姿勢角度は同じcharacteristicを使うので１つにカウントします。)
 要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
+
+### `multi_corecube_test`
+
+複数のToio Core Cubeを接続し、制御し、イベントを受け取るサンプルスケッチです。
+
+2つ以上6つまでtoio core cubeを接続して動かすことができます。
+NimBLEのデフォルト設定では3つまでしか接続できないので、nimconfig.hの #define CONFIG_BT_NIMBLE_MAX_CONNECTIONS の値を6に変更してください。(ESP32では9個まで接続できるようですが、手持ちのToio Core Cubeは6つしかないので試せていません)
+arduino ESP32のデフォルトのBLEライブラリでは4つまでしか接続できないようです。
+
+事前に Toio Core Cube の電源を入れてマットの上に置いてください。(toio コア キューブ（単体）付属の簡易プレイマットで動作します。ほかのマットを使う場合はMAT_CENTER_X, MAT_CENTER_Yの値を変更してください)
+
+M5Stack が起動すると自動的に Toio Core Cube をスキャンします。
+Toio Core Cube が見つかると M5Stack シリアルポートのログにデバイス名と MAC アドレスが表示されます。見つからなければ、再度、M5Stack のリセットボタンを押して再起動してください。
+
+Toio Core Cubeとの接続が確立すると、Toio Core Cubeのランプ(LED)が常時点灯になります。
+すべてのToio Core Cubeと接続が終わった後、、M5Stack の A ボタン押すとToio Core Cubeの数に合わせた位置(3つなら三角形の頂点の位置、4つなら四角形、6つなら六角形)に移動します。 (初回は置いた位置によってはToio Core Cubeが衝突するので手で場所を変えてあげてください)
+M5Stack の A ボタン押すごとにToio Core Cubeは位置を変えます。
+  
+Toio Core Cubeのボタンを押すと、押したToio Core Cubeで効果音が鳴り、押していないToio Core Cubeが300ms回転します。
 
 ---------------------------------------
 以下はfutomiさんのオリジナルのサンプルコード
