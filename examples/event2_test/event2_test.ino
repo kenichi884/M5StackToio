@@ -73,7 +73,7 @@
 #include <M5Unified.h>
 #include <Toio.h>
 
-// Creaate Toio object.
+// Declare a toio object
 // Toio オブジェクト生成
 Toio toio;
 

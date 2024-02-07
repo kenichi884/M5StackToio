@@ -60,7 +60,7 @@
 #define TEST_MOTION_SENSOR 1
 #define TEST_MOTOR 1
 
-// Creaate Toio object.
+// Declare a toio object
 // Toio オブジェクト生成
 Toio toio;
 

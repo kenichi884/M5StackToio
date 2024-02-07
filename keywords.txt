@@ -38,9 +38,21 @@ getBleProtocolVersion	KEYWORD2
 setFlatThreshold	KEYWORD2
 setClashThreshold	KEYWORD2
 setDtapThreshold	KEYWORD2
+setIDnotificationSettings	KEYWORD2
+setIDmissedNotificationSettings	KEYWORD2
+setMagneticSensorSettings	KEYWORD2
+setMotorSpeedInformationAcquistionSettings	KEYWORD2
+setPostureAngleDetectionSettings	KEYWORD2
 controlMotor	KEYWORD2
 drive	KEYWORD2
-_loop	KEYWORD2
+controlMotorWithTarget	KEYWORD2
+controlMotorWithMultipleTargets	KEYWORD2
+controlMotorWithAcceleration
+getMotor	KEYWORD2
+onMotor	KEYWORD2
+getIDReaderData	KEYWORD2
+onIDReaderData	KEYWORD2
+_loop	KEYWORD2	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
