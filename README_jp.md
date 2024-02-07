@@ -1,5 +1,6 @@
 M5StackToio
 ===============
+[English](README.md)
 
 本ライブラリはオリジナルの https://github.com/futomi/M5StackToio で、それにToio IDの読み取り機能を追加したバージョンの https://github.com/mhama/M5StackToio をベースにprotocol v2.3.0対応と目標位置指定のモーター制御をたしたものです。
 
@@ -307,7 +308,7 @@ M5.Log.println(mac.c_str()); // 例 "d1:52:fa:d2:c6:a1"
 
 ### <a id="ToioCore-getName-method">✔ `getName()` メソッド (デバイス名取得)</a>
 
-toio コア キューブのデバイス名を返します。デバイス名は、toio コア キューブがアドバタイジングパケットにセットした `localName` の値です。通常は `"toio Core Cube"` 固定です。
+toio コア キューブのデバイス名を返します。デバイス名は、toio コア キューブがアドバタイジングパケットにセットした `localName` の値です。通常は `"toio Core Cube-XXX"` です。XXX にはキューブごとに固有の ID 文字列が入ります。
 
 #### プロトタイプ宣言
 
@@ -323,7 +324,7 @@ std::string getName();
 
 ```c++
 std::string name = toiocore->getName();
-M5.Log.println(name.c_str()); // 例 "toio Core Cube"
+M5.Log.println(name.c_str()); // 例 "toio Core Cube-a9R"
 ```
 
 ### <a id="ToioCore-connect-method">✔ `connect()` メソッド (BLE 接続)</a>
@@ -484,7 +485,7 @@ std::string getBleProtocolVersion();
 
 ```c++
 std::string ble_ver = toiocore->getBleProtocolVersion();
-M5.Log.println(ble_ver.c_str()); // 例 "2.1.0"
+M5.Log.println(ble_ver.c_str()); // 例 "2.3.0"
 ```
 
 ### <a id="ToioCore-playSoundEffect-method">✔ `playSoundEffect()` メソッド (効果音再生)</a>
@@ -805,6 +806,7 @@ struct ToioCoreMotionData {
   bool clash;
   bool dtap;
   uint8_t attitude;
+  uint8_t shake;
 };
 
 ToioCoreMotionData getMotion();
@@ -824,6 +826,7 @@ ToioCoreMotionData getMotion();
 `clash`    | `bool`    | 衝突検出 (`true`: あり, `false`: なし)
 `dtap`     | `bool`    | ダブルタップ検出 (`true`: あり, `false`: なし)
 `attitude` | `uint8_t` | 姿勢検出 (後述)
+`shake`    | `uint8_t` | シェイク検出 (0x00 検出なし, 0x01 ～ 0x0a 振った強さ)
 
 姿勢検出 `attitude` が取る値とその意味は以下の通りです。
 
@@ -846,6 +849,7 @@ M5.Log.printf("- 水平検出: %s\n", motion.flat ? "水平" : "水平でない"
 M5.Log.printf("- 衝突検出: %s\n", motion.clash ? "あり" : "なし");
 M5.Log.printf("- ダブルタップ検出: %s\n", motion.dtap ? "あり" : "なし");
 M5.Log.printf("- 姿勢検出: %d\n",  motion.attitude);
+M5.Log.printf("- シェイク検出: %d\n",  motion.shake);
 ```
 
 ### <a id="ToioCore-onMotion-method">✔ `onMotion()` メソッド (モーションセンサーのコールバックをセット)</a>
@@ -860,6 +864,7 @@ struct ToioCoreMotionData {
   bool clash;
   bool dtap;
   uint8_t attitude;
+  uint8_t shake;
 };
 
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
@@ -1059,9 +1064,6 @@ No. | 変数名         | 型        | 必須   | 説明
 7   | `target_num`     | `uint16_t`  | ✔     | ターゲット座標の数(`1` ～ `29`)
 8   | `target_positions` | `ToioCoreTargetPos *`  | ✔     | ターゲット座標の配列へのポインタ
 
-要確認:目標地点5個は動いたことを確認。toio core cubeの仕様上は29個が上限だが未確認。
-
-
 #### コードサンプル
 
 ```c++
@@ -1106,7 +1108,7 @@ No. | 変数名         | 型        | 必須   | 説明
 2   | `acceleration` | `uint8_t`  | ✔     | キューブの加速度(100 ミリ秒ごとの速度の増加分 `0` ～ `255`)
 3   | `rotational_velocity` | `uint16_t`  | ✔     | キューブの向きの回転速度 (度/秒 `0` ～ `65535`)
 4   | `rotational_direction` | `uint8_t`  | ✔     | キューブの向きの回転方向	 (`0` 正 ～ `1` 負)
-5   | `travel_direction` | `uint8_t`  | ✔ | モーターの速度変化タイプ (`0` 前進 ～ `1` 後退)
+5   | `travel_direction` | `uint8_t`  | ✔ | キューブの進行方向 (`0` 前進 ～ `1` 後退)
 6   | `priority`     | `uint8_t`  | ✔     | 速度調整優先指定(`0` 並進優先回転調整  ～ `1` 回転優先速度調整)
 7   | `duration`     | `uint8_t`  | ✔     | 制御時間  x10 ミリ秒 0は制限なし(`0` ～ `255`)
 
@@ -1129,8 +1131,14 @@ toio コア キューブのモーター制御の応答イベントのコール�
 // モーター制御の応答
 struct ToioCoreMotorResponse {
   uint8_t controlType;  // 制御の種類
-  uint8_t controlID; // 制御識別値 または 左モーターの速度
-  uint8_t response;  // 応答内容 または右モーターの速度
+  union {
+    uint8_t controlID; // 制御識別値 
+    uint8_t leftSpeed; // または 左モーターの速度
+  };
+  union {
+   uint8_t response; // 応答内容
+   uint8_t rightSpeed;  // または右モーターの速度
+  };
 };
 
 typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
@@ -1195,25 +1203,25 @@ toio コア キューブのID読み取りセンサーの状態を取得します
 
 ```c++
 struct ToioCoreIDData {
-  ToioCoreIDType type;
-  ToioCorePositionIDData position;
-  ToioCoreStandardIDData standard;
+  ToioCoreIDType type; // 	情報の種類
+  union {
+    ToioCorePositionIDData position; // キューブの座標と角度
+    ToioCoreStandardIDData standard; // キューブの下のStandard IDとキューブの角度
+  };
 };
 
-// Position IDの場合のデータ
 struct ToioCorePositionIDData {
-  uint16_t cubePosX;
-  uint16_t cubePosY;
-  uint16_t cubeAngleDegree;
-  uint16_t sensorPosX;
-  uint16_t sensorPosY;
-  uint16_t sensorAngleDegree;
+  uint16_t cubePosX; // 	キューブの中心の X 座標値
+  uint16_t cubePosY; //   キューブの中心の Y 座標値
+  uint16_t cubeAngleDegree; // キューブの角度
+  uint16_t sensorPosX;  // 読み取りセンサーの X 座標値
+  uint16_t sensorPosY;  // 読み取りセンサーの Y 座標値
+  uint16_t sensorAngleDegree;  // 読み取りセンサーの角度
 };
 
-// Standard IDの場合のデータ
 struct ToioCoreStandardIDData {
-  uint32_t standardID;
-  uint16_t cubeAngleDegree;
+  uint32_t standardID;  // Standard ID の値
+  uint16_t cubeAngleDegree; // キューブの角度
 };
 
 ToioCoreIDData getIDReaderData();
@@ -1372,7 +1380,7 @@ void loop() {
 
 ### `basic_test`
 
-オリジナルの`basic`と同様に本ライブラリが提供するメソッドを一通り実行するスケッチです。
+オリジナルのスケッチ`basic`と同様に本ライブラリが提供するメソッドを一通り実行するスケッチです。
 
 事前に toio コア キューブ の電源を入れてください。
 
@@ -1387,9 +1395,9 @@ https://toio.github.io/toio-spec/docs/hardware_position_id
 
 ### `event_test`
 
-オリジナルの`event`と同様に本ライブラリが提供するイベントをハンドリングするサンプルスケッチです。
+オリジナルのスケッチ`event`と同様に本ライブラリが提供するイベントをハンドリングするサンプルスケッチです。
 ただし、arduino ESP32ではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(ソースコードのコメントも参照)
-要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
+要確認: NimBLEの場合は5つ以上コールバックをセットできるようです。
 
 事前に toio コア キューブ の電源を入れてください。
 
@@ -1416,7 +1424,7 @@ toio コア キューブが接続された後、M5Stack の A ボタン押すと
 M5Stack の Aボタンを2秒以上押すと toio コア キューブとの BLE 接続を遮断または再接続します。
 
 arduino ESP32のデフォルトのBLEライブラリではnotifyの登録が4つまでしか動作しないため、同時に４つまでしかイベントをハンドリングするコールバックを設定できませんので注意してください。(モーション、磁気、姿勢角度は同じcharacteristicを使うので１つにカウントします。)
-要確認: NimBLEの場合は5つ以上コールバックをセットできるようだ。
+要確認: NimBLEの場合は5つ以上コールバックをセットできるようです。
 
 ### `multi_corecube_test`
 
@@ -1486,16 +1494,19 @@ BLE 接続中、ジョイスティックの z 軸を押すと、チャルメロ�
   * 初版リリース(futomiさん版)
 
 * v1.0.0 (2023-10-09)
-  * kenichi884版　最初のgithub公開 
+  * kenichi884版　最初のgithub公開 toio core cube BLE protocol v2.3.0に対応。
 
 * v1.0.0 (2023-12-24)
   * kenichi884版　サンプルコード、Readmeを微修正、以降の修正との区別のためv1.0.0タグつけ。
 
 * v1.0.1 (2023-12-24)
-  * kenichi884版　NimBLE使用に変更、サンプルコードののM5Sta.print()をM5.Log.printf()に変更
+  * kenichi884版　NimBLE使用に変更、サンプルコードののSerial.print()をM5.Log.printf()に変更
 
 * v1.0.2 (2024-01-07)
   * kenichi884版　複数のtoio core cubeを接続した場合、get系メソッド、イベント(notify)が個別のtoio core cubeの情報を返していなかったのを修正
+
+* v1.0.3. (2024-02-07)
+  * kenichi884 version　英語版の Reaadme.md を追加. struct ToioCoreIDDataと struct ToioCoreMotorResponse の定義を変更(unionを使うようにした).　
 ---------------------------------------
 ## <a id="References">リファレンス</a>
 
