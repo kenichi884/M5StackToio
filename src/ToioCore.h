@@ -94,14 +94,19 @@ struct ToioCoreIDData {
   ToioCoreIDData() : type(ToioCoreIDTypeNone) {}
   ToioCoreIDData(
     ToioCoreIDType type,
-    ToioCorePositionIDData position,
+    ToioCorePositionIDData position)
+    : type(type),
+    position(position) {}
+  ToioCoreIDData(
+    ToioCoreIDType type,
     ToioCoreStandardIDData standard)
     : type(type),
-    position(position),
     standard(standard) {}
   ToioCoreIDType type;
-  ToioCorePositionIDData position; // Position IDの場合のデータ
-  ToioCoreStandardIDData standard; // Standard IDの場合のデータ
+  union {
+    ToioCorePositionIDData position; // Position IDの場合のデータ
+    ToioCoreStandardIDData standard; // Standard IDの場合のデータ
+  };
 };
 
 // 目標指定付き移動のターゲット座標
@@ -141,8 +146,14 @@ enum ToioCoreAngleAndRotationType {
 // モーター制御の応答
 struct ToioCoreMotorResponse {
   uint8_t controlType;
-  uint8_t controlID; // or Left motor speed
-  uint8_t response; // or Right motor speed
+  union {
+    uint8_t controlID; // Control identification value
+    uint8_t leftSpeed; // or Left motor speed
+  };
+  union {
+   uint8_t response; // Response content
+   uint8_t rightSpeed;  // or Right motor speed
+  };
 };
 
 enum ToioCoreMotorResponseControlType {
@@ -216,7 +227,6 @@ class ToioCore {
     BLERemoteCharacteristic* _char_motor;
     BLERemoteCharacteristic* _char_id_reader;
 
-
     OnConnectionCallback _onconnection;
     OnButtonCallback _onbutton;
     OnBatteryCallback _onbattery;
@@ -226,7 +236,7 @@ class ToioCore {
     OnIDDataCallback _on_id_reader;
     OnMotorCallback _onmotor;
 
-  public:  ///  ToioClientCallbackからアクセスするため
+  public:  ///  ToioClientCallbackからアクセスするためにpublic指定
     void setConnectionFlags(BLEClient *client);
   private:
     bool _event_connection_updated;
