@@ -7,11 +7,11 @@ This library is based on the original https://github.com/futomi/M5StackToio and 
 M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate Sony Interactive Entertainment's "[toio Core Cube](https://toio.io/)".
 
 ---------------------------------------
-## 目次
+## Index
 
 * [1. Setting up the development environment](#Setup-IDE)
 * [2. Omsta;; M5StackToio library](#Install-M5StackToio)
-* [3. 使い方](#Usage)
+* [3. Usage](#Usage)
 * [4. `Toio` object](#Toio-object)
   * [`scan()` method (Discover toio core cubes)](#Toio-scan-method)
   * [`loop()` method (Process events)](#Toio-loop-method)
@@ -49,7 +49,7 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
 * [License](#License)
 
 ---------------------------------------
-## <a id="Setup-IDE">1. 開発環境セットアップ</a>
+## <a id="Setup-IDE">1. Setup development environment</a>
 
 M5Stack development environment is required to use this library. Please follow the instructions on the M5Stack official website to set up your development environment.
 
@@ -58,7 +58,7 @@ M5Stack development environment is required to use this library. Please follow t
 Requires installation of USB driver, Arduino-IDE installation, Boards Manager settings, board installation, board selection, and M5Stack Library installation.
 
 ---------------------------------------
-## <a id="Install-M5StackToio">2. M5StackToio のインストール</a>
+## <a id="Install-M5StackToio">2. Install M5StackToio/a>
 
 Click the `Code` button on the top right of this page and select `Download ZIP` to download the zip file of this library.
 
@@ -101,7 +101,7 @@ Change this line like below.
 
 
 ---------------------------------------
-## <a id="Usage">3. 使い方</a>
+## <a id="Usage">3. Usage</a>
 
 The sample code below scans for toio core cubes, connects to the first toio core cube it finds, and disconnects after 3 seconds.
 
@@ -784,9 +784,9 @@ void setup() {
   // Start BLE connection.
   toiocore->connect();
 
-  // ボタン押下状態イベントのコールバックをセット
+  // Set button state change event callback.
   toiocore->onButton([](bool state) {
-    M5.Log.println(state ? "ボタン押下" : "ボタン解除");
+    M5.Log.println(state ? "button press" : "button release");
   });
 }
 
@@ -1110,11 +1110,11 @@ void controlMotorWithAcceleration(uint8_t translational_speed, uint8_t accelerat
 No. |  Variable name         |  Type        |  Required   |  Description
 :---|:---------------|:----------|:-------|:-------------
 1   | `translational_speed`  | `uint8_t`  | x     | Translational speed of cube(`0` - `255`)
-2   | `acceleration` | `uint8_t`  | x     | Acceleration of cube(100 ミリ秒ごとの速度の増加分 `0` - `255`)
+2   | `acceleration` | `uint8_t`  | x     | Acceleration of cube(increment (or decrement) in speed every 100 milliseconds. `0` - `255`)
 3   | `rotational_velocity` | `uint16_t`  | x     | Rotational velocity when cube changes orientation (degree/second `0` - `65535`)
-4   | `rotational_direction` | `uint8_t`  | x     | Rotational direction when cube changes orientation	 (`0` Forward ～ `1` Backward)
+4   | `rotational_direction` | `uint8_t`  | x     | Rotational direction when cube changes orientation	 (`0` Forward - `1` Backward)
 5   | `travel_direction` | `uint8_t`  | x | Direction of cube travel (`0` Forward - `1` Backward)
-6   | `priority`     | `uint8_t`  | x     | Priority designation(`0` 並進優先回転調整  - `1` 回転優先速度調整)
+6   | `priority`     | `uint8_t`  | x     | Priority designation(`0` the translational speed and adjusts the rotational velocity  - `1` the rotational velocity and adjusts the translational speed)
 7   | `duration`     | `uint8_t`  | x     | Duration of control  10 times the specified value in milliseconds, A value of 0 specifies for there to be no time limit (`0` - `255`)
 
 #### code sample
@@ -1158,9 +1158,9 @@ No. |  Variable name   |  Type                 |  Required   |  Description
 
 #### code sample
 
-以下のサンプルスケッチは、目標指定付きモーター制御の応答、複数目標指定付きモーター制御の応答、モーターの速度情報のいずれかを得るものです。
+The sample sketch below obtains either the response of motor control with target specification, the response of motor control with multiple target specification, or motor speed information.
 
-コールバックを使う場合は、`.ino` ファイルの `loop()` 関数内で `Toio` オブジェクトの [`loop()`](#Toio-loop-method) メソッドを呼び出してください。コールバックは、`.ino` ファイルの `loop()` 関数が実行が開始されてから発生したイベントしかハンドリングできませんので注意してください。
+To use a callback, call the [`loop()`](#Toio-loop-method) method of the `Toio` object within the `loop()` function in the `.ino` file. Note that callbacks can only handle events that occur after the `loop()` function in the `.ino` file starts executing.
 
 ```c++
 #include <M5Unified.h>
@@ -1200,9 +1200,9 @@ void loop() {
 }
 ```
 
-### <a id="ToioCore-getIDReaderData-method">x `getIDReaderData()` メソッド (ID読み取りセンサーの状態、マット上の位置情報を取得)</a>
+### <a id="ToioCore-getIDReaderData-method">x `getIDReaderData()` method (Get the ID read sensor status, Get the position and angle on the mat)</a>
 
-toio コア キューブのID読み取りセンサーの状態を取得します。キューブがマット上にあるとき、マットからセンサーで読み取った値(ID)が取得できます。マットから読み取ることができるIDには、マット上の座標値を表すポジションIDと、キューブが乗っている領域を表すスタンダードIDがあり、どちらかの情報が返されます。
+Get the ID read sensor status of the toio core cube. When the cube is on the mat, the value (ID) read by the sensor can be obtained from the mat. The IDs that can be read from the mat include the position ID, which represents the coordinate values ​​on the mat, and the standard ID, which represents the area on which the cube is placed, and either information will be returned.
 
 #### prototype declaration
 
@@ -1512,10 +1512,10 @@ While connected to BLE, pressing the z-axis of the joystick will play Charmelo. 
 * v1.0.2 (2024-01-07)
   * kenichi884 version　Fixed an issue where get methods and events (notify) were not returning information on individual toio core cubes when multiple toio core cubes were connected.
 
-* v1.0.3. (2024-01-21)
+* v1.0.3. (2024-02-07)
   * kenichi884 version　Add Reaadme.md (nglish translated). Change struct ToioCoreIDData and struct ToioCoreMotorResponse definition (use union).
 ---------------------------------------
-## <a id="References">リファレンス</a>
+## <a id="References">References</a>
 
 * [toio Official Web page](https://toio.io/)
 * [toio コア キューブ 技術仕様(Japanese)](https://toio.github.io/toio-spec/)
