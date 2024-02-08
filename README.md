@@ -58,7 +58,7 @@ M5Stack development environment is required to use this library. Please follow t
 Requires installation of USB driver, Arduino-IDE installation, Boards Manager settings, board installation, board selection, and M5Stack Library installation.
 
 ---------------------------------------
-## <a id="Install-M5StackToio">2. Install M5StackToio/a>
+## <a id="Install-M5StackToio">2. Install M5StackToio</a>
 
 Click the `Code` button on the top right of this page and select `Download ZIP` to download the zip file of this library.
 
