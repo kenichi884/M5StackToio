@@ -41,7 +41,7 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
   * [` controlMotorWithAcceleration()` method (Motor control with acceleration specified)](#ToioCore-controlMotorWithAcceleration-method)
   * [`onMotor()` method (Set motor event(reached to target, motor speed infomation) callback)](#ToioCore-onMotor-method)
   * [`getIDReaderData()` method (Get the identification sensor information (position on mat, etc)](#ToioCore-getIDReaderData-method)
-  * [`onIDReaderData()` メソッド (Set identification sensor iformation event callback)](#ToioCore-onIDReaderData-method)
+  * [`onIDReaderData()` method (Set identification sensor iformation event callback)](#ToioCore-onIDReaderData-method)
 
 * [6. Sample Arduino sketches](#Sample-Sketches)
 * [Release notes](#Release-Note)
@@ -288,7 +288,7 @@ As mentioned above, to manipulate the discovered toio core cube, call the method
 
 ### <a id="ToioCore-getAddress-method">x `getAddress()` method (Get Address)</a>
 
-toio コア キューブの MAC アドレスを返します。
+Return the Toio Core cube's MAC address.
 
 #### prototype declaration
 
