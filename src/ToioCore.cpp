@@ -658,25 +658,28 @@ void ToioCore::controlMotorWithMultipleTargets(uint8_t distinction, uint8_t time
 
   size_t data_size = 8 + 6 * target_num;
   uint8_t *data = new uint8_t[data_size];
-  data[0] = 0x04; // control type
-  data[1] = distinction;
-  data[2] = timeout;
-  data[3] = movement_type;
-  data[4] = maximum_speed;
-  data[5] = speed_change_type;
-  data[6] = 0x00; // reserved
-  data[7] = addition_setting;
+  if(data) {
+    data[0] = 0x04; // control type
+    data[1] = distinction;
+    data[2] = timeout;
+    data[3] = movement_type;
+    data[4] = maximum_speed;
+    data[5] = speed_change_type;
+    data[6] = 0x00; // reserved
+    data[7] = addition_setting;
 
-  for(int i = 0 ; i < target_num; i++){
-    data[8 + i * 6]     = 0xff & target_positions[i].posX;
-    data[8 + i * 6 + 1] = target_positions[i].posX >> 8;
-    data[8 + i * 6 + 2] = 0xff & target_positions[i].posY;
-    data[8 + i * 6 + 3] = target_positions[i].posY >> 8;
-    data[8 + i * 6 + 4] = 0xff & target_positions[i].angleDegree;
-    data[8 + i * 6 + 5] = (0x1f & (target_positions[i].angleDegree >> 8)) | (0xef & (target_positions[i].angleAndRotation << 5));
+    for(int i = 0 ; i < target_num; i++){
+      data[8 + i * 6]     = 0xff & target_positions[i].posX;
+      data[8 + i * 6 + 1] = target_positions[i].posX >> 8;
+      data[8 + i * 6 + 2] = 0xff & target_positions[i].posY;
+      data[8 + i * 6 + 3] = target_positions[i].posY >> 8;
+      data[8 + i * 6 + 4] = 0xff & target_positions[i].angleDegree;
+      data[8 + i * 6 + 5] = (0x1f & (target_positions[i].angleDegree >> 8)) | (0xef & (target_positions[i].angleAndRotation << 5));
+    }
+
+    this->_char_motor->writeValue(data, data_size, true);
+    delete data;
   }
-
-  this->_char_motor->writeValue(data, data_size, true);
 }
 
 // ---------------------------------------------------------------
