@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 and NimBLE support  https://github.com/kenichi84 
+  Protocol v2.4.0 and NimBLE support  https://github.com/kenichi84 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -51,11 +51,25 @@ struct ToioCorePostureAngleEuler {
   int16_t yaw;
 };
 struct ToioCorePostureAngleQuaternion {
-  int16_t w;
-  int16_t x;
-  int16_t y;
-  int16_t z;
+  float_t w;
+  float_t x;
+  float_t y;
+  float_t z;
 };
+struct ToioCorePostureAngleHighPrecisionEuler {
+  float_t roll;
+  float_t pitch;
+  float_t yaw;
+};
+
+struct ToioCorePostureAngle{
+  union {
+    ToioCorePostureAngleEuler euler;
+    ToioCorePostureAngleQuaternion quaternion;
+    ToioCorePostureAngleHighPrecisionEuler eulerf;
+  };
+};
+
 //磁気センサー情報
 struct ToioCoreMagneticSensorData {
   uint8_t state;
@@ -187,15 +201,22 @@ enum ToioCoreMagneticSensorFunctionSetting {
 
 enum ToioCorePostureAngleType {
   AngleTypeEuller = 0x01,
-  AngleTypeQuaternion = 0x02
+  AngleTypeQuaternion = 0x02,
+  AngleTypeHighPrecisionEuller = 0x03
 };
+
+// ms time divisor  ミリ秒から引数値に変換するための除数
+const int MOTOR_CTRL_DURATION_UNIT = 10;
+const int NOTIFICATION_INTERVAL_UNIT = 10;
+const int MAGNET_NOTIFICATION_INTERVAL_UNIT = 20;
+const float CONNECTION_INTERVAL_UNIT = 1.25;
 
 
 typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
 typedef std::function<void(uint8_t level)> OnBatteryCallback;
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
-typedef std::function<void(ToioCorePostureAngleEuler angle_euler)> OnPostureAngleEulerCallback;
+typedef std::function<void(ToioCorePostureAngle angle)> OnPostureAngleCallback;
 typedef std::function<void(ToioCoreMagneticSensorData magnetic_sensor)> OnMagneticSensorCallback;
 typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
 typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
@@ -231,7 +252,7 @@ class ToioCore {
     OnButtonCallback _onbutton;
     OnBatteryCallback _onbattery;
     OnMotionCallback _onmotion;
-    OnPostureAngleEulerCallback _onpostureangleeuler;
+    OnPostureAngleCallback _onpostureangle;
     OnMagneticSensorCallback _onmagneticsensor;
     OnIDDataCallback _on_id_reader;
     OnMotorCallback _onmotor;
@@ -249,10 +270,8 @@ class ToioCore {
     bool _event_button_state;
     bool _event_motion_updated;
     ToioCoreMotionData _event_motion_data;
-    bool _event_posture_angle_euler_updated;
-    ToioCorePostureAngleEuler _event_posture_angle_euler_data;
-    bool _event_posture_angle_quaternion_updated;
-    ToioCorePostureAngleQuaternion _event_posture_angle_quaternion_data;
+    bool _event_posture_angle_updated;
+    ToioCorePostureAngle _event_posture_angle_data;  
     bool _event_magnetic_sensor_updated;
     ToioCoreMagneticSensorData _event_magnetic_sensor_data;
     bool _event_id_data_updated;
@@ -327,7 +346,7 @@ class ToioCore {
     ToioCoreMotionData getMotion();
 
     // モーションセンサーのコールバックをセット
-    void onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb = nullptr, OnPostureAngleEulerCallback euler_cb = nullptr);
+    void onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb = nullptr, OnPostureAngleCallback angle_cb = nullptr);
 
     // BLE プロトコルバージョン取得
     std::string getBleProtocolVersion();
@@ -348,13 +367,13 @@ class ToioCore {
     void setIDmissedNotificationSettings(uint8_t sensitivity);
 
     // 磁気センサーの設定
-    void setMagneticSensorSettings(uint8_t function, uint8_t interval, uint8_t condition);
+    void setMagneticSensorSettings(uint8_t interval, uint8_t condition, uint8_t function = EnableMagneticForce);
 
     // モーターの速度情報の取得の設定
     void setMotorSpeedInformationAcquistionSettings(bool enable);
     
     // 姿勢角検出の設定
-    void setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type = 0x01);
+    void setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type = AngleTypeEuller);
 
     // モーター制御 (引数の値をそのまま送信するローレベルのメソッド)
     void controlMotor(bool ldir, uint8_t lspeed, bool rdir, uint8_t rspeed, uint16_t duration = 0);

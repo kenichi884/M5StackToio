@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 and NimBLE support   https://github.com/kenichi84 
+  Protocol v2.4.0 and NimBLE support   https://github.com/kenichi84 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.

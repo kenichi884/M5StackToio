@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 support  https://github.com/kenichi84 
+  Protocol v2.4.0 support  https://github.com/kenichi84 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -43,7 +43,7 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_onbattery = nullptr;
   this->_onmotion = nullptr;
   this->_onmagneticsensor = nullptr;
-  this->_onpostureangleeuler = nullptr;
+  this->_onpostureangle = nullptr;
   this->_on_id_reader = nullptr;
   this->_onmotor = nullptr;
 
@@ -55,10 +55,8 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_event_battery_level = 0;
   this->_event_motion_updated = false;
   this->_event_motion_data = {0x00, 0x00, 0x00, 0x00, 0x00};
-  this->_event_posture_angle_euler_updated = false;
-  this->_event_posture_angle_euler_data = {0, 0, 0};
-  this->_event_posture_angle_quaternion_updated = false;
-  this->_event_posture_angle_quaternion_data = {0, 0, 0, 0};
+  this->_event_posture_angle_updated = false;
+  this->_event_posture_angle_data = {0, 0, 0};
   this->_event_magnetic_sensor_updated = false;
   this->_event_magnetic_sensor_data = {0, 0, 0, 0, 0};
   this->_event_id_data_updated = false;
@@ -396,11 +394,11 @@ ToioCoreMotionData ToioCore::getMotion() {
 // ---------------------------------------------------------------
 // モーションセンサーのコールバックをセット
 // ---------------------------------------------------------------
-void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, OnPostureAngleEulerCallback euler_cb) {
+void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, OnPostureAngleCallback angle_cb) {
   if (!this->isConnected()) {
     return;
   }
-  if((cb != nullptr) || (mag_cb != nullptr) || (euler_cb != nullptr)) {
+  if((cb != nullptr) || (mag_cb != nullptr) || (angle_cb != nullptr)) {
     this->_char_motion->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
       if (!this->_current_client) {
         return;
@@ -416,20 +414,23 @@ void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, On
         this->_event_motion_data.shake = data[5];
         this->_event_motion_updated = true;
       } else if(data[0] == 0x03){ // posture  angle
-        if(data[1] == 0x01){
-          this->_event_posture_angle_euler_data.roll = *(int16_t *) &data[2];
-          this->_event_posture_angle_euler_data.pitch = *(int16_t *) &data[4];
-          this->_event_posture_angle_euler_data.yaw = *(int16_t *) &data[6];
-          this->_event_posture_angle_euler_updated = true;
-        }else if (data[1] == 0x02){
-          this->_event_posture_angle_quaternion_data.w = *(int16_t *) &data[2];
-          this->_event_posture_angle_quaternion_data.x = *(int16_t *) &data[4];
-          this->_event_posture_angle_quaternion_data.y = *(int16_t *) &data[6];
-          this->_event_posture_angle_quaternion_data.z = *(int16_t *) &data[8];
-          this->_event_posture_angle_quaternion_updated = true;
+        if(data[1] == 0x01){ // int16 euler
+          this->_event_posture_angle_data.euler.roll = *(int16_t *) &data[2];
+          this->_event_posture_angle_data.euler.pitch = *(int16_t *) &data[4];
+          this->_event_posture_angle_data.euler.yaw = *(int16_t *) &data[6];
+        }else if (data[1] == 0x02){ // float32 quaternion
+          this->_event_posture_angle_data.quaternion.w = *(float_t *) &data[2];
+          this->_event_posture_angle_data.quaternion.x = *(float_t *) &data[6];
+          this->_event_posture_angle_data.quaternion.y = *(float_t *) &data[10];
+          this->_event_posture_angle_data.quaternion.z = *(float_t *) &data[14];
+        } else if (data[1] == 0x03){ // float32 euler
+          this->_event_posture_angle_data.eulerf.roll = *(float_t *) &data[2];
+          this->_event_posture_angle_data.eulerf.pitch = *(float_t *) &data[6];
+          this->_event_posture_angle_data.eulerf.yaw = *(float_t *) &data[10];
         } else {
           return;
         }
+        this->_event_posture_angle_updated = true;
       } else if(data[0] == 0x02){ // magnetic sensor
         this->_event_magnetic_sensor_data.state = data[1];
         this->_event_magnetic_sensor_data.strength = data[2];
@@ -444,7 +445,7 @@ void ToioCore::onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb, On
   }
   this->_onmotion = cb;
   this->_onmagneticsensor = mag_cb;
-  this->_onpostureangleeuler = euler_cb;
+  this->_onpostureangle = angle_cb;
 }
 
 // ---------------------------------------------------------------
@@ -543,7 +544,7 @@ void ToioCore::setIDmissedNotificationSettings(uint8_t sensitivity){
 // ---------------------------------------------------------------
 // 磁気センサーの設定
 // ---------------------------------------------------------------
-void ToioCore::setMagneticSensorSettings(uint8_t function, uint8_t interval, uint8_t condition){
+void ToioCore::setMagneticSensorSettings(uint8_t interval, uint8_t condition, uint8_t function){
   if (!this->isConnected()) {
     return;
   }
@@ -855,10 +856,10 @@ void ToioCore::_loop() {
   } 
 
   // 姿勢角イベント
-  if (this->_event_posture_angle_euler_updated) {
-    if (this->_onpostureangleeuler) {
-      this->_onpostureangleeuler(this->_event_posture_angle_euler_data);
-      this->_event_posture_angle_euler_updated = false;
+  if (this->_event_posture_angle_updated) {
+    if (this->_onpostureangle) {
+      this->_onpostureangle(this->_event_posture_angle_data);
+      this->_event_posture_angle_updated = false;
     }
   }
   
