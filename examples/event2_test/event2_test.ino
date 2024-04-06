@@ -132,7 +132,7 @@ void setup() {
 
   // Identification sensor ID notification settings
   // 読み取りセンサーの ID 通知設定
-  toiocore->setIDnotificationSettings(1, 1);
+  toiocore->setIDnotificationSettings(1, NotifyChangesOnly);
 
   // Identification sensor ID missed notification settings
   // 読み取りセンサーの ID missed 通知設定
@@ -158,12 +158,14 @@ void setup() {
 
   // Magnetic sensor settings
   // 磁気センサーの設定
-  // toiocore->setMagneticSensorSettings(1, 1, 1);  // 磁石の状態を検出
-  toiocore->setMagneticSensorSettings(2, 1, 1); // 磁力の強さを検出
+  // toiocore->setMagneticSensorSettings(1, NotifyChangesOnly, EnableMagnetState);  // 磁石の状態を検出
+  toiocore->setMagneticSensorSettings(1, NotifyChangesOnly, EnableMagneticForce); // 磁力の強さを検出
 
   // Posture angle detection settings
   // 姿勢角検出の設定
-  toiocore->setPostureAngleDetectionSettings(1, 1); // 姿勢をオイラー角で検出
+  toiocore->setPostureAngleDetectionSettings(1, NotifyChangesOnly, AngleTypeEuller); // 姿勢をオイラー角(int16)で検出
+  //toiocore->setPostureAngleDetectionSettings(1, NotifyChangesOnly, AngleTypeQuaternion); // 姿勢を四元数(float)で検出
+  //toiocore->setPostureAngleDetectionSettings(1, NotifyChangesOnly, AngleTypeHighPrecisionEuller); // 姿勢を高精度オイラー角(float)で検出
 
   // Set motion event, magnetic sensor event, posture angle event callbacks.
   // Motion イベントと磁気センサーと姿勢角のコールバックをセット
@@ -176,9 +178,18 @@ void setup() {
       M5.Log.printf("Magnetic Sensor Event state=%u, strength=%u, x=%d, y=%d, z=%d\n",
       mag_sensor.state, mag_sensor.strength, mag_sensor.x, mag_sensor.y, mag_sensor.z);
     },
-    [](ToioCorePostureAngleEuler euler_angle){
-      M5.Log.printf("Posture Angle Euler Event roll=%d, pitch=%d, yaw=%d\n",
-      euler_angle.roll, euler_angle.pitch, euler_angle.yaw);
+    [](ToioCorePostureAngle angle){
+      M5.Log.printf("Posture Angle Euler(int16) Event roll=%d, pitch=%d, yaw=%d\n",
+      angle.euler.roll, angle.euler.pitch, angle.euler.yaw);
+      /*
+      M5.Log.printf("Posture Angle Quaternion(float32) Event w=%f, x=%f, y=%f, z=%f\n",
+      angle.quaternion.w, angle.quaternion.x, angle.quaternion.y, angle.quaternion.z);
+      */
+      /*
+      M5.Log.printf("Posture Angle High precision Euler(float32) Event roll=%f, pitch=%f, yaw=%f\n",
+      angle.eulerf.roll, angle.eulerf.pitch, angle.eulerf.yaw);
+      */
+      
     }
   ); 
 
