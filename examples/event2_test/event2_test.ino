@@ -149,7 +149,8 @@ void setup() {
         id_data.position.cubeAngleDegree);
       }
       else if (id_data.type == ToioCoreIDTypeStandard) {
-        M5.Log.printf("Standard ID: %u\n", id_data.standard.standardID);
+        M5.Log.printf("Standard ID: %u angle: %u\n",
+        id_data.standard.standardID, id_data.standard.cubeAngleDegree);
       }
       else {
         M5.Log.printf("no id found.\n");
