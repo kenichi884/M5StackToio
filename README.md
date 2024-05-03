@@ -2,7 +2,8 @@ M5StackToio
 ===============
 [日本語 Japanese](README_jp.md)
 
-This library is based on the original https://github.com/futomi/M5StackToio and the version https://github.com/mhama/M5StackToio that adds the Toio ID reading function, and is compatible with protocol v2.3.0. This is a combination of position-specific motor control.
+This library is based on the original https://github.com/futomi/M5StackToio and the version https://github.com/mhama/M5StackToio that adds the Toio ID reading function.
+This library is compatible with BLE protocol v2.3.0 or later.
 
 M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate Sony Interactive Entertainment's "[toio Core Cube](https://toio.io/)".
 
@@ -10,7 +11,8 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
 ## Index
 
 * [1. Setting up the development environment](#Setup-IDE)
-* [2. Omsta;; M5StackToio library](#Install-M5StackToio)
+* [2. Install M5StackToio library](#Install-M5StackToio)
+  * [Install M5StackToio library manually](Install-M5StackToio_manually)
 * [3. Usage](#Usage)
 * [4. `Toio` object](#Toio-object)
   * [`scan()` method (Discover toio core cubes)](#Toio-scan-method)
@@ -34,6 +36,20 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
   * [`onButton()` method (Set the button state change event)](#ToioCore-onButton-method)
   * [`getMotion()` method (Get the motion sensor status)](#ToioCore-getMotion-method)
   * [`onMotion()` method (Set the motion sensor state change event callback)](#ToioCore-onMotion-method)
+  * [`setFlatThreshold()` method (Set the horizontal detection threshold settings)](#ToioCore-setFlatThreshold-method)
+  * [`setClashThreshold()` method (Set the collision detection threshold settings)](#ToioCore-setClashThreshold-method)
+  * [`setDtapThreshold()` method (Set the double-tap detection time interval settings)](#ToioCore-setDtapThreshold-method)
+  * [`setIDnotificationSettings()` method (Set the identification sensor ID notification settings)](#ToioCore-setIDnotificationSettings-method)
+  * [`setIDmissedNotificationSettings()` method (Set the identification sensor ID missed notification settings)](#ToioCore-setIDmissedNotificationSettings-method)
+  * [`setMagneticSensorSettings()` method (Set the magnetic sensor settings)](#ToioCore-setMagneticSensorSettings-method)
+  * [`setMotorSpeedInformationAcquistionSettings()` method (Set the Motor speed information acquisition settings)](#ToioCore-setMotorSpeedInformationAxquistionSettings-method)
+  * [`setPostureAngleDetectionSettings()` method (Set the posture angle detection settings )](#ToioCore-setPostureAngleDetectionSettings-method)
+  * [`setSerializedInformationSettings()` method (Set the serialized information notification settings)](#ToioCore-setSerializedInformationSettings-method)
+  * [`onConfiguration()` method (Set the configration event callback)](#ToioCore-onConfiguration-method)
+  * [`setConnectionInterval()` method (Request to change connection interval)](#ToioCore-setConnectionInterval-method)
+  * [`getRequestedConnectionInterval()` method (Obtaining the requested connection interval value)](#ToioCore-getRequestedConnectionInterval-method)
+  * [`getAcctualConnectionInterval()` method (Obtaining the actual connection interval value)](#ToioCore-getAcctualConnectionInterval-method)
+  * [`getConfigurationResponse()` method (Get the responses change configurations)](#ToioCore-getConfigurationResponse-method)
   * [`controlMotor()` method (control the motors)](#ToioCore-controlMotor-method)
   * [`drive()` method (drive toio core cube like a car)](#ToioCore-drive-method)
   * [`controlMotorWithTarget()` method (Motor control with target specified (single target))](#ToioCore-controlMotorWithTarget-method)
@@ -60,19 +76,8 @@ Requires installation of USB driver, Arduino-IDE installation, Boards Manager se
 ---------------------------------------
 ## <a id="Install-M5StackToio">2. Install M5StackToio</a>
 
-Click the `Code` button on the top right of this page and select `Download ZIP` to download the zip file of this library.
-
-Start Arduino IDE and select `Sketch` -> `Include library` -> `Install .ZIP format library...` from the menu bar. Select the zip file of this library that you downloaded earlier to complete the installation of this library.
-
-If you have access to the git command, you can also install it as follows: The following is an example using Windows 10 PowerShell.
-
-```
-cd ~
-cd Documents\Arduino\libraries
-git clone https://github.com/kenichi884/M5StackToio.git
-```
-
-For PlatformIO, create a Toio folder under lib in the project folder and place Toio.h, Toio.cpp, ToioCore.h, and ToioCore.cpp in it.
+Since v1.0.3, it is registered at https://github.com/arduino/library-registry, so you can search for M5StackToio in the Library Manager from the Arduino IDE without having to manually place the library file in place M5StackToio can be searched for and installed in the Library Manager from the Arduino IDE.
+In PlatformIO, add kenichi884/M5StackToio to the lib_deps option in the env: section of platformio.ini.
 
 In order to reduce heap memory consumption, the BLE stack has been changed from the default one (Bluedroid) to [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) from v1.0.1.
 (There is a difference of about 37KB. If you use it at the same time as WiFi, you will not be able to use it unless you use NimBLE because there is not enough heap. You can also free up more memory by setting nimbleconfig.h.)
@@ -82,6 +87,7 @@ Install [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) library
 In the Arduino IDE, search for NimBLE-Arduino in the library manager and install it.
 For PlatformIO, add the following line to the lib_deps option in the env: section of platformio.ini.
 ```
+kenichi884/M5StackToio
 h2zero/NimBLE-Arduino@^1.4.1
 ```
 
@@ -99,6 +105,21 @@ Change this line like below.
 // #define USE_NIMBLE 1
 ```
 
+## <a id="Install-M5StackToio_manually">2.1 Install M5StackToio library manually</a>
+
+Click the `Code` button on the top right of this page and select `Download ZIP` to download the zip file of this library.
+
+Start Arduino IDE and select `Sketch` -> `Include library` -> `Install .ZIP format library...` from the menu bar. Select the zip file of this library that you downloaded earlier to complete the installation of this library.
+
+If you have access to the git command, you can also install it as follows: The following is an example using Windows 10 PowerShell.
+
+```
+cd ~
+cd Documents\Arduino\libraries
+git clone https://github.com/kenichi884/M5StackToio.git
+```
+
+For PlatformIO, create a Toio folder under lib in the project folder and place Toio.h, Toio.cpp, ToioCore.h, and ToioCore.cpp in it.
 
 ---------------------------------------
 ## <a id="Usage">3. Usage</a>
@@ -364,7 +385,7 @@ void disconnect();
 
 #### argument
 
-なし
+none
 
 #### code sample
 
@@ -486,7 +507,7 @@ none
 
 ```c++
 std::string ble_ver = toiocore->getBleProtocolVersion();
-M5.Log.println(ble_ver.c_str()); // example "2.3.0"
+M5.Log.println(ble_ver.c_str()); // example "2.4.0"
 ```
 
 ### <a id="ToioCore-playSoundEffect-method">x `playSoundEffect()` method (Play sound effect)</a>
@@ -855,13 +876,22 @@ M5.Log.printf("- Posture detection: %d\n",  motion.attitude);
 M5.Log.printf("- Shake detection: %d\n",  motion.shake);
 ```
 
-### <a id="ToioCore-onMotion-method">x `onMotion()` method (Set motion sensor callback)</a>
 
-toio Core Sets the cube motion event callback. If there is a change in motion, call the callback function specified as an argument. A structure representing the motion is passed to the callback function.
+
+### <a id="ToioCore-onMotion-method">x `onMotion()`  method (Set motion, magnetic, posture angle callbacks)</a>
+
+Sets the callback for the toio core cube's motion sensor, magnetic sensor and posture angle detect event callback. 
+If there is a change in motion, call the callback function specified as an argument. A structure representing the motion is passed to the callback function.
+
+You can also set the magnetic sensor event callback in the second argument and the attitude angle event callback in the third argument.
+A structure representing information from the magnetic sensor and attitude angle information is passed to each callback function.
+Notifications of magnetic sensor information and attitude angle information are disabled by default.
+To obtain magnetic sensor information, call the [setMagneticSensorSettings() method](#ToioCore-setMagneticSensorSettings-method), and to obtain posture angle information, call the[setPostureAngleDetectionSettings() method](#ToioCore-setPostureAngleDetectionSettings-method) to activate the notification function. must be turned on.
 
 #### prototype declaration
 
 ```c++
+
 struct ToioCoreMotionData {
   bool flat;
   bool clash;
@@ -870,21 +900,59 @@ struct ToioCoreMotionData {
   uint8_t shake;
 };
 
+struct ToioCorePostureAngleEuler {
+  int16_t roll;
+  int16_t pitch;
+  int16_t yaw;
+};
+struct ToioCorePostureAngleQuaternion {
+  float_t w;
+  float_t x;
+  float_t y;
+  float_t z;
+};
+struct ToioCorePostureAngleHighPrecisionEuler {
+  float_t roll;
+  float_t pitch;
+  float_t yaw;
+};
+
+struct ToioCorePostureAngle{
+  union {
+    ToioCorePostureAngleEuler euler;
+    ToioCorePostureAngleQuaternion quaternion;
+    ToioCorePostureAngleHighPrecisionEuler eulerf;
+  };
+};
+
+struct ToioCoreMagneticSensorData {
+  uint8_t state;
+  uint8_t strength;
+  int8_t x;
+  int8_t y;
+  int8_t z;
+};
+
 typedef std::function<void(ToioCoreMotionData motion)> OnMotionCallback;
-void onMotion(OnMotionCallback cb);
+typedef std::function<void(ToioCoreMagneticSensorData magnetic_sensor)> OnMagneticSensorCallback;
+typedef std::function<void(ToioCorePostureAngle angle)> OnPostureAngleCallback;
+void onMotion(OnMotionCallback cb, OnMagneticSensorCallback mag_cb = nullptr, OnPostureAngleCallback angle_cb = nullptr);
 ```
 
 #### argument
 
 No. |  Variable name   |  Type                 |  Required   |  Description
 :---|:--------|:-------------------|:-------|:-------------
-1   | `cb`    | `OnMotionCallback` | x     | Callback function
+1   | `cb`    | `OnMotionCallback` |  x  | motion sensor event callback function
+2   | `mag_cb`    | `OnMagneticSensorCallback` |      | magnetic sensor event callback function
+3   | `angle_cb`    | `OnPostureAngleCallback` |      | posture angle detect event callback function
 
 #### code sample
 
 The sample sketch below outputs the state each time there is a change in motion.
 
 To use a callback, call the [`loop()`](#Toio-loop-method) method of the `Toio` object within the `loop()` function in the `.ino` file. Note that callbacks can only handle events that occur after the `loop()` function in the `.ino` file starts executing.
+
 
 ```c++
 #include <M5Unified.h>
@@ -924,6 +992,510 @@ void loop() {
   toio.loop();
 }
 ```
+
+The sample sketch below outputs the status each time there is a change in the magnetic sensor or attitude angle.
+
+```c++
+#include <M5Unified.h>
+#include <Toio.h>
+
+// Declare a toio object
+Toio toio;
+
+void setup() {
+  // Initialize M5Stack
+  M5.begin();
+  M5.Power.begin();
+
+  // Scan Toio Core Cubes in 3 seconds.
+  std::vector<ToioCore*> toiocore_list = toio.scan(3);
+  if (toiocore_list.size() == 0) {
+    return;
+  }
+  ToioCore* toiocore = toiocore_list.at(0);
+
+  // Start BLE connection.
+  toiocore->connect();
+
+  // Enable magnetic sensor, force detection
+  toiocore->setMagneticSensorSettings(1, NotifyChangesOnly, EnableMagneticForce); 
+  // Enable posture angle detection (euler angles (int16))
+  toiocore->setPostureAngleDetectionSettings(1, NotifyChangesOnly, AngleTypeEuller); 
+
+  // Motion event is not used, so set nullptr, set magnetic sensor callback, set posture angle callback
+  toiocore->onMotion(
+    nullptr,
+    [](ToioCoreMagneticSensorData mag_sensor){
+      M5.Log.printf("Magnetic Sensor Event state=%u, strength=%u, x=%d, y=%d, z=%d\n",
+      mag_sensor.state, mag_sensor.strength, mag_sensor.x, mag_sensor.y, mag_sensor.z);
+    },
+    [](ToioCorePostureAngle angle){
+      M5.Log.printf("Posture Angle Euler(int16) Event roll=%d, pitch=%d, yaw=%d\n",
+      angle.euler.roll, angle.euler.pitch, angle.euler.yaw);
+    });
+}
+
+void loop() {
+  // When using a callback, always call loop() on the Toio object
+  toio.loop();
+}
+```
+
+### <a id="ToioCore-getBleProtocolVersion-method">x `getBleProtocolVersion()` method (Get BLE protocol version information)</a>
+
+Get toio core cube's BLE protocol version information.
+
+Call this method after call the method connect(), and connection was established.
+
+#### prototype declaration
+
+```c++
+std::string getBleProtocolVersion();
+```
+
+#### argument
+
+none
+
+#### code sample
+
+```c++
+  // Print Toio Core's BLE protocol version.
+  M5.Log.println(protoclver.c_str()); //  Ex. "v2.4.0"
+```
+
+### <a id="ToioCore-setFlatThreshold-method">x `setFlatThreshold()` method (Set horizontal detection threshold settings)</a>
+
+Set horizontal detection threshold settings.
+
+#### prototype declaration
+
+```c++
+ void setFlatThreshold(uint8_t deg = 45);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `deg`     | `uint8_t`     |      | Threshold degree(1～45)
+
+For the meaning of horizontal detection threshold, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#horizontal-detection-threshold-settings).
+
+
+### <a id="ToioCore-setClashThreshold-method">x `setClashThreshold()` method (Set collision detection threshold settings)</a>
+
+Set collision detection threshold settings.
+
+#### prototype declaration
+
+```c++
+ void setClashThreshold(uint8_t level = 7);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `level`     | `uint8_t`     |      | Threshold level (weak 1-10 strong)
+
+For the meaning of collision detection threshold, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#collision-detection-threshold-settings).
+
+### <a id="ToioCore-setDtapThreshold-method">x `setDtapThreshold()` method (Set double-tap detection time interval settings)</a>
+
+Set double-tap detection time interval settings.
+
+#### prototype declaration
+
+```c++
+ void setDtapThreshold(uint8_t level = 5);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `level`     | `uint8_t`     |      | Time interval level (short 0-7 long)
+
+For the meaning of double-tap detection time interval level, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#double-tap-detection-time-interval-settings).
+
+
+### <a id="ToioCore-setIDnotificationSettings-method">x `setIDnotificationSettings()` method (Set identification sensor ID notification settings)</a>
+
+Set identification sensor ID notification settings.
+
+#### prototype declaration
+
+```c++
+ void setIDnotificationSettings(uint8_t minimum_interval, uint8_t condition);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `minimum_interval`     | `uint8_t`     | x    | Minimum notification interval(0-255, unit is 10ms)
+2   | `condition`     | `uint8_t`     | x     | Notification condition(0x00, 0x01, 0xff)
+
+For the notification condition, se e[toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#identification-sensor-id-notification-settings).
+
+### <a id="ToioCore-setIDmissedNotificationSettings-method">x `setIDmissedNotificationSettings()` method (Set identification sensor ID missed notification settings)</a>
+
+Set identification sensor ID missed notification settings.
+
+#### prototype declaration
+
+```c++
+ void setIDmissedNotificationSettings(uint8_t sensitivity);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `sensitivity`     | `uint8_t`     |  x  | Time interval of the notification when the cube is removed from the top of something on which a Position ID or Standard ID is printed. (0-255, unit is 10ms)
+
+For the ID missed sensitivity, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#identification-sensor-id-missed-notification-settings).
+
+### <a id="ToioCore-setMagneticSensorSettings-method">x `ssetMagneticSensorSettings()` method (Set magnetic sensor settings)</a>
+
+Set magnetic sensor settings.
+This function is disabled by default. If you want to use it, you must call this method to enable it.
+
+#### prototype declaration
+
+```c++
+ void setMagneticSensorSettings(uint8_t interval, uint8_t condition, uint8_t function = EnableMagneticForce);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `interval`     | `uint8_t`     |  x  | Notification interval (0-255, unit is 20ms)
+2   | `condition`     | `uint8_t`     |  x  | Always 0x00, when there are changes 0x01
+3   | `function`     | `uint8_t`     |    | magnet state 0x01, magnet force 0x02, disable 0x00
+
+For the magnet sensor settings,see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#magnetic-sensor-settings).
+
+### <a id="ToioCore-setMotorSpeedInformationAcquistionSetting-method">x `setMotorSpeedInformationAcquistionSettings()` method (Set motor speed information acquisition settings)</a>
+
+Set motor speed information acquisition settings.
+This function is disabled by default. If you want to use it, you must call this method to enable it.
+
+#### prototype declaration
+
+```c++
+ void setMotorSpeedInformationAcquistionSettings(bool enable);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `enable`     | `bool`     |  x  | motor speed information acquisition enable(true)/ disable(false)
+
+For the motor speed information acquisition settings, see [toio Core Cube Communication specifications]https://toio.github.io/toio-spec/en/docs/ble_configuration#motor-speed-information-acquisition-settings).
+
+### <a id="ToioCore-setPostureAngleDetectionSettings-method">x `setPostureAngleDetectionSettings()` method (Set posture angle detection settings)</a>
+
+Set posture angle detection settings
+This function is disabled by default. If you want to use it, you must call this method to enable it.
+Also, since the posture angles are notified as the specified angle type (Euler angles, quaternions, high-precision Euler angles), the receiving side of the notification must process it according to each angle type.
+
+#### prototype declaration
+
+```c++
+ void setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type = AngleTypeEuller);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `interval`     | `uint8_t`     |  x  | Notification interval (0-255, unit is 10ms)
+2   | `condition`     | `uint8_t`     |  x  | Always 0x00, Only when there is a change 0x01
+3   | `angle_type`     | `uint8_t`     |    |  Euler angles(uint16_t) 0x01, quaternions(float) 0x02, high-precision Euler angles(float) 0x03
+
+For the Posture angle detection settings, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#posture-angle-detection-settings-).
+
+### <a id="ToioCore-setSerializedInformationSettings-method">x `setSerializedInformationSettings()` method (Enable serialized information notification)</a>
+
+Enable serialized information notification of the toio Core Cube.
+This function is disabled by default. If you want to use it, you must call this method to enable it.
+
+
+#### prototype declaration
+
+```c++
+ void setSerializedInformationSettings(uint8_t interval, uint8_t condition);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `interval`     | `uint8_t`     |  x  | Notification interval time(0-255, unit is 10ms)
+2   | `condition`     | `uint8_t`     |  x  | Always 0x00,  Only when there is a change 0x01
+
+For serialized information notification setting, see [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_serialized_information).
+
+### <a id="ToioCore-onConfiguration-method">x `onConfiguration()` method (Set configuration response callback)</a>
+
+Set configuration response callback.
+Set a callback function to receive notifications in response to configuration changes.
+Serialization information is also notified using this configuration change response.
+
+#### prototype declaration
+
+```c++
+// Response of set configuration
+struct ToioCoreSetConfigurationResponse {
+    uint8_t reserved;
+    uint8_t response;
+};
+
+// Connection interval values
+struct ToioCoreConnectionIntervalSettings {
+    uint8_t reserved;
+    uint16_t minimum;
+    uint16_t maximum;
+};
+
+// Response of configuration characteristics read/notify.
+struct ToioCoreConfigurationResponse {
+  uint8_t infoType;
+  union {
+    ToioCoreSetConfigurationResponse config; // Response of set configuration infoType = 0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+    ToioCoreConnectionIntervalSettings interval; // Connection interval infoType =  0xb1 or 0xb2
+    uint8_t serialized[19]; // Serialized informaiton   info Type = 0xf0
+  }; 
+};
+
+enum ToioCoreConfigrationType {
+  ResponseBLEProtocolVersion = 0x81,
+  ResponseIDnotificationSettings = 0x98,
+  ResponseIDmissedNotificationSettings = 0x99,
+  ResponseMagneticSensorSettings = 0x9b,
+  ResponseMotoroSpeedInformationAcquisitionSettings = 0x9c,
+  ResponsePostureAngleDetectionSettings = 0x9d,
+  ResponseSerializedInformationSettings = 0x9e,
+  ResponseChangeConnectionInterval = 0xb0,
+  ResponseObtainRequestedConnectionInterval = 0xb1,
+  ResponseObtainActualConnectionInterval = 0xb2,
+  SerializedData = 0xf0
+};
+typedef std::function<void(ToioCoreConfigurationResponse configration_response)> OnConfigurationCallback;
+void onConfiguration(OnConfigurationCallback cb);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `cb`     | `OnConfigurationCallback`     |  x  | callback function
+
+#### code sample
+
+The code below is a sample code that receives response notifications when settings are changed and serialization information notifications.
+
+```c++
+  struct SerializedBits {
+    unsigned reserved:4;
+    unsigned button:1;
+    unsigned toioIDstatus:2;
+    unsigned toioIDangleLower:1;
+
+    unsigned toioIDangleUpper:8;
+
+    unsigned cubeXLower:8;
+
+    unsigned cubeXUpper:6;
+    unsigned cubeYLower:2;
+
+    unsigned cubeYMiddle:8;
+
+    unsigned cubeYUpper:4;
+    unsigned standardIDLower:4;
+
+    unsigned standardIDMiddleLow:8;
+
+    unsigned standardIDMiddleHigh:8;
+
+    unsigned standardIDUpper:8;
+
+    unsigned motorSpeedL:8;
+
+    unsigned motorSpeedR:8;
+
+    unsigned moveToTargetsResponse:5;
+    unsigned motionAngleDetect:3;
+
+    unsigned battery:7;
+    unsigned motionHorizontalDetect:1;
+
+    unsigned motionShakedDetect:5;
+    unsigned motionCollisionDetect:1;
+    unsigned motionDoubleTapDetect:1;
+    unsigned reserved2:1;
+
+    unsigned eulerAngleRoll:8;
+
+    unsigned eulerAnglePitch:8;
+
+    unsigned eulerAngleYaw:8;
+
+    unsigned eulerAngleRollSign:1;
+    unsigned eulerAnglePitchSign:1;
+    unsigned eulerAngleYawSign:1;
+    unsigned reserved3:2;
+    unsigned magnetStatus:3;
+
+    unsigned magnetForce:8;
+  };
+
+  toiocore->onConfiguration([] (ToioCoreConfigurationResponse resp){
+    M5.Log.printf(" config event %02x  ", resp.infoType);
+    if((resp.infoType == ResponseObtainRequestedConnectionInterval) ||
+      (resp.infoType == ResponseObtainActualConnectionInterval))
+        M5.Log.printf("connection interval %02x %u %u", resp.interval.reserved, resp.interval.minimum, resp.interval.maximum);
+    else if(resp.infoType == SerializedData) {
+      M5.Log.printf("serialized rawdata ");
+      for(int i = 0 ; i < 19; i++){
+        M5.Log.printf("%02x ", resp.serialized[i]);
+      }
+      M5.Log.printf("\n");
+      SerializedBits bits;
+      memcpy(&bits, resp.serialized, 19);
+      uint toioIDangle = (bits.toioIDangleUpper << 1) |  bits.toioIDangleLower;
+      uint cubeX = (bits.cubeXUpper << 8) | bits.cubeXLower;
+      uint cubeY = (bits.cubeYUpper << 10) | (bits.cubeYMiddle << 4) | bits.cubeYLower;
+      uint32_t standardID = (bits.standardIDUpper << 20) | (bits.standardIDMiddleHigh << 12) | (bits.standardIDMiddleLow << 4) | (bits.standardIDLower);
+      int roll = bits.eulerAngleRoll;
+      if(bits.eulerAngleRollSign) roll = -roll;
+      int pitch = bits.eulerAnglePitch;
+      if(bits.eulerAnglePitchSign) pitch = -pitch;
+      int yaw = bits.eulerAngleYaw;
+      if(bits.eulerAngleYawSign) yaw = -yaw;
+      M5.Log.printf("serialized res%u, btn%u, IDstatus%u IDangle%u, X%u Y%u ID0x%08x spdL%u spdR%u MTR%u MA%u Bat%u Ho%u Sh%u Co%u DT%u R%u Rol%d Pit%d Yaw%d R%u Ms%u Mf%u\n",  bits.reserved, 
+        bits.button, 
+        bits.toioIDstatus, toioIDangle,
+        cubeX, cubeY,
+        standardID, bits.motorSpeedL, bits.motorSpeedR,
+        bits.moveToTargetsResponse, bits.motionAngleDetect, bits.battery,
+        bits.motionHorizontalDetect, bits.motionShakedDetect, bits.motionCollisionDetect, bits.motionDoubleTapDetect,
+        bits.reserved2,
+        roll, pitch, yaw,
+        bits.reserved3,
+        bits.magnetStatus, bits.magnetForce); 
+    } else 
+      M5.Log.printf("set configuration %02x %02x ", resp.config.reserved, resp.config.response);
+
+    M5.Log.printf("\n");
+  });
+```
+
+For the response of configuration change, [toio Core Cube Communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#read-operations).
+
+### <a id="ToioCore-setConnectionInterval-method">x `setConnectionInterval()` method (Request to change connection interval)</a>
+
+Request to change connection interval values between the M5Stack and the toio Core Cube.
+Allowed values are defined by the BLE specifications.  
+
+#### prototype declaration
+
+```c++
+ void setConnectionInterval(uint16_t minimum, uint16_t maximum);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `minimum`     | `uint16_t`     |  x  | 0xFFFF（no requested value）or 0x0006 - 0x0C80, unit is 1.25ms
+2   | `maximum`     | `uint16_t`     |  x  | 0xFFFF（no requested value）or 0x0006 - 0x0C80, unit is 1.25ms
+
+For the request to change connection interval, see [toio Core Cube communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#request-to-change-connection-interval-).
+
+### <a id="ToioCore- getRequestedConnectionInterval-method">x ` getRequestedConnectionInterval()` method (Obtaining the requested connection interval value)</a>
+
+Obtaining the requested connection interval values which was requested by setConnectionInterval() method.
+
+#### prototype declaration
+
+```c++
+ void getRequestedConnectionInterval(uint16_t& minimum, uint16_t& maximum);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `minimum`     | `uint16_t`     |  x  | minimum value, unit is 1.25ms
+2   | `maximum`     | `uint16_t`     |  x  | maximum value, unit is 1.25ms
+
+For the obtaining the requested connection interval value, see [toio Core Cube communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#obtaining-the-requested-connection-interval-value-).
+
+### <a id="ToioCore- getAcctualConnectionInterval-method">x ` getAcctualConnectionInterval()` method (Obtaining the actual connection interval value)</a>
+
+Get the actual connection interval values between the M5Stack and the toio core cube.
+
+#### prototype declaration
+
+```c++
+ void getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `minimum`     | `uint16_t`     |  x  | minimum value, unit is 1.25ms
+2   | `maximum`     | `uint16_t`     |  x  | maximum value, unit is 1.25ms
+
+
+For the obtaining the actual connection interval value, see [toio Core Cube communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#obtaining-the-actual-connection-interval-value-).
+
+
+### <a id="ToioCore-getConfigurationResponse-method">x `getConfigurationResponse()` method (Get response configuration settings)</a>
+
+Gets the result response of setting method calls such as setFlatThreshold().
+
+#### prototype declaration
+
+```c++
+// Response of set configuration
+struct ToioCoreSetConfigurationResponse {
+    uint8_t reserved;
+    uint8_t response;
+};
+
+// Connection interval values
+struct ToioCoreConnectionIntervalSettings {
+    uint8_t reserved;
+    uint16_t minimum;
+    uint16_t maximum;
+};
+
+// Response of configuration characteristics read/notify.
+struct ToioCoreConfigurationResponse {
+  uint8_t infoType;
+  union {
+    ToioCoreSetConfigurationResponse config; // Response of set configuration infoType = 0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+    ToioCoreConnectionIntervalSettings interval; // Connection interval infoType =  0xb1 or 0xb2
+    uint8_t serialized[19]; // Serialized informaiton   info Type = 0xf0
+  }; 
+};
+
+ToioCoreConfigurationResponse getConfigurationResponse();
+```
+
+#### argument
+
+none
+
+For the response of set configuration, see [toio Core Cube communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#read-operations).
+
 
 ### <a id="ToioCore-controlMotor-method">x `controlMotor()` method (Control motor)</a>
 
@@ -1382,7 +1954,7 @@ Once the installation of this library is complete, you will be able to select `M
 
 Among these, `basic`, `event`, and `joystick_drive` are futomi-san's original sample codes [M5Stack Basic](https://www.switch-science.com/catalog/3647/) and [M5Stack Gray](https ://www.switch-science.com/catalog/3648/).
 
-`basic_test`, `event_test`, `event2_test`, and `multi_corecube_test` are newly added sample codes that use the M5Unified library, so they will work with any M5Stack controller product that has one or more buttons. (The output results are output to the serial port instead of the LCD.)
+`basic_test`, `event_test`, `event2_test`, `multi_corecube_test`, `multiple_targetpos_test` and `config_event_test` are newly added sample codes that use the M5Unified library, so they will work with any M5Stack controller product that has one or more buttons. (The output results are output to the serial port instead of the LCD.)
 
 ### `basic_test`
 
@@ -1410,7 +1982,8 @@ Please turn on the toio Core Cube in advance.
 When M5Stack starts, it automatically scans the toio core cube. If the toio core cube is found, the device name and MAC address will be output to the serial port. If it is not found, press the reset button on the M5Stack button again to restart.
 
 After the toio core cube is discovered, it listens for various events and displays the received event information on the serial port.
-When you press the A button on M5Stack, the toio Core Cube moves to the specified target point, and when the movement is completed, it receives a Motor event and displays the result on the serial port. When performing this test, please prepare the simple playmat that comes with the toio Core Cube (single package) or change the coordinates of the target point to those that correspond to the playmat you have.
+When you press the A button on M5Stack, the toio Core Cube moves to the specified target point, and when the movement is completed, it receives a Motor event and displays the result on the serial port. 
+When performing this test, please prepare the simple playmat that comes with the toio Core Cube (single package) or change the coordinates of the target point to those that correspond to the playmat you have.
 https://toio.github.io/toio-spec/docs/hardware_position_id
 
 Pressing the A button on M5Stack for more than 2 seconds will connect/disconnect the BLE connection with toio Core Cube.
@@ -1451,6 +2024,24 @@ After connecting all Toio Core Cubes, press the A button on M5Stack to move to t
 Toio Core Cube changes its position every time you press the A button on M5Stack.
   
 TWhen you press a button on a Toio Core Cube, the pressed Toio Core Cube will play a sound effect, and the unpressed Toio Core Cubes will rotate for 300ms.
+
+### `multiple_targetpos_test`
+
+This is a sketch that tests movement with multiple destinations.
+
+When performing this test, please prepare the simple playmat that comes with the toio Core Cube (single package) or change the coordinates of the target point to those that correspond to the playmat you have.
+https://toio.github.io/toio-spec/docs/hardware_position_id
+
+After establishing a connection with Toio Core Cube, press the A button on M5Stack to move to the center of the mat, then
+Moves outward in a spiral pattern (with #define MAX_TOIOCORE_TARGET_NUM 29), weaving through the specified destinations.
+
+According to the Toio Core Cube's communication protocol specifications, 29 is the maximum value.
+
+### `config_event_test`
+
+This is a sketch that receives configuration responses and serialization information using notify.
+Once the connection with Toio Core Cube is complete, test the settings response and serialization information notification reception.
+Listens for configuration response events and displays the received configuration response and serialization information in the serial port log.
 
 ---------------------------------------
 Below is futomi-san's original sample code
@@ -1514,6 +2105,9 @@ While connected to BLE, pressing the z-axis of the joystick will play Charmelo. 
 
 * v1.0.3. (2024-02-07)
   * kenichi884 version　Add Reaadme.md (nglish translated). Change struct ToioCoreIDData and struct ToioCoreMotorResponse definition (use union).
+
+* v1.0.4. (2024-05-03)
+  * kenichi884 version　Support BLE protocol version 2.4.0 features(Get posture angles in quaternions, high-precision Euler angles, Set BLE connection interval). Support the notification of serialized information.
 ---------------------------------------
 ## <a id="References">References</a>
 
@@ -1535,6 +2129,8 @@ While connected to BLE, pressing the z-axis of the joystick will play Charmelo. 
 The MIT License (MIT)
 
 Copyright (c) 2020 Futomi Hatano
+Toio ID read support   https://github.com/mhama
+Protocol v2.3.0 or later support  https://github.com/kenichi884 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

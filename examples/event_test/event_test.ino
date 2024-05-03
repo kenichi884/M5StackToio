@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 support  https://github.com/kenichi884 
+  Protocol v2.3.0 or later support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -12,9 +12,9 @@
   --------------------------------------------------------------
   This sample sketch was tested on M5Stack Atom S3, Atom S3 lite, and M5Capsule.
   M5Unified, so it should also work with other M5Stack controllers with more than one button.
-  I think it works with other M5Stack controllers with more than one button.
-  Log.printf() of M5Unified is used for operation log. Log.printf() of M5Unified. By default, the logs appear on the serial port.
-
+  This sample sketch uses M5Unified, so it should also work with other M5Stack controllers that have more than one button.
+  M5Unified M5.Log.printf() is used for operation log. By default, operation log appears on the serial port.
+  
   It seems that arduino ESP32 can only register up to 4 BLE notifications.
   Therefore, it is not possible to receive all the notifications (events) of Toio Core Cube at the same time.
   Please set only (up to 4) necessary notifications (callbacks).

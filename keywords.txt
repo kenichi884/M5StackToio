@@ -43,6 +43,12 @@ setIDmissedNotificationSettings	KEYWORD2
 setMagneticSensorSettings	KEYWORD2
 setMotorSpeedInformationAcquistionSettings	KEYWORD2
 setPostureAngleDetectionSettings	KEYWORD2
+setSerializedInformationSettings	KEYWORD2
+onConfiguration	KEYWORD2
+setConnectionInterval	KEYWORD2
+getRequestedConnectionInterval	KEYWORD2
+getAcctualConnectionInterval	KEYWORD2
+getConfigurationResponse	KEYWORD2
 controlMotor	KEYWORD2
 drive	KEYWORD2
 controlMotorWithTarget	KEYWORD2

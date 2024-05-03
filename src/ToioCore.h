@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.4.0 and NimBLE support  https://github.com/kenichi84 
+  Protocol v2.3.0 or later and NimBLE support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -44,7 +44,7 @@ enum ToioCoreMotionPosture {
   LeftSideFacesUpward = 6   //  左面が上
 };
 
-// 姿勢悪情報
+// 姿勢角情報
 struct ToioCorePostureAngleEuler {
   int16_t roll;
   int16_t pitch;
@@ -205,12 +205,49 @@ enum ToioCorePostureAngleType {
   AngleTypeHighPrecisionEuller = 0x03
 };
 
+enum ToioCoreConfigrationType {
+  ResponseBLEProtocolVersion = 0x81,
+  ResponseIDnotificationSettings = 0x98,
+  ResponseIDmissedNotificationSettings = 0x99,
+  ResponseMagneticSensorSettings = 0x9b,
+  ResponseMotoroSpeedInformationAcquisitionSettings = 0x9c,
+  ResponsePostureAngleDetectionSettings = 0x9d,
+  ResponseSerializedInformationSettings = 0x9e,
+  ResponseChangeConnectionInterval = 0xb0,
+  ResponseObtainRequestedConnectionInterval = 0xb1,
+  ResponseObtainActualConnectionInterval = 0xb2,
+  SerializedData = 0xf0
+};
+
+// 設定変更の応答 infoType =  0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+struct ToioCoreSetConfigurationResponse {
+    uint8_t reserved;
+    uint8_t response;
+};
+
+// コネクションインターバル値 infoType =  0xb1 or 0xb2
+struct ToioCoreConnectionIntervalSettings {
+    uint8_t reserved;
+    uint16_t minimum;
+    uint16_t maximum;
+};
+
+// 設定characteristicsの読み出し/notifyの応答
+struct ToioCoreConfigurationResponse {
+  uint8_t infoType;
+  union {
+    ToioCoreSetConfigurationResponse config; // 設定応答 infoType = 0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+    ToioCoreConnectionIntervalSettings interval; // コネクションインターバル値 infoType =  0xb1 or 0xb2
+    uint8_t serialized[19]; // シリアライズ情報   info Type = 0xf0
+  }; 
+};
+
+
 // ms time divisor  ミリ秒から引数値に変換するための除数
 const int MOTOR_CTRL_DURATION_UNIT = 10;
 const int NOTIFICATION_INTERVAL_UNIT = 10;
 const int MAGNET_NOTIFICATION_INTERVAL_UNIT = 20;
 const float CONNECTION_INTERVAL_UNIT = 1.25;
-
 
 typedef std::function<void(bool connected)> OnConnectionCallback;
 typedef std::function<void(bool state)> OnButtonCallback;
@@ -220,6 +257,7 @@ typedef std::function<void(ToioCorePostureAngle angle)> OnPostureAngleCallback;
 typedef std::function<void(ToioCoreMagneticSensorData magnetic_sensor)> OnMagneticSensorCallback;
 typedef std::function<void(ToioCoreIDData id_data)> OnIDDataCallback;
 typedef std::function<void(ToioCoreMotorResponse motor_response)> OnMotorCallback;
+typedef std::function<void(ToioCoreConfigurationResponse configration_response)> OnConfigurationCallback;
 
 // ---------------------------------------------------------------
 // ToioCore クラス
@@ -256,6 +294,7 @@ class ToioCore {
     OnMagneticSensorCallback _onmagneticsensor;
     OnIDDataCallback _on_id_reader;
     OnMotorCallback _onmotor;
+    OnConfigurationCallback _onconfig;
 
   public:  ///  ToioClientCallbackからアクセスするためにpublic指定
     void setConnectionFlags(BLEClient *client);
@@ -278,6 +317,8 @@ class ToioCore {
     ToioCoreIDData _event_id_data;
     bool _event_motor_updated;
     ToioCoreMotorResponse _event_motor_response;
+    bool _event_config_updated;
+    ToioCoreConfigurationResponse _event_config_response;
 
   private:
     void _wait(const unsigned long msec);
@@ -374,6 +415,24 @@ class ToioCore {
     
     // 姿勢角検出の設定
     void setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type = AngleTypeEuller);
+
+    // シリアライズ情報の通知設定
+    void setSerializedInformationSettings(uint8_t interval, uint8_t condition);
+
+    // 設定の応答コールバックをセット
+    void onConfiguration(OnConfigurationCallback cb);
+
+    // コネクションインターバル値の変更
+    void setConnectionInterval(uint16_t minimum, uint16_t maximum);
+
+    // コネクションインターバル要求値の取得
+    void getRequestedConnectionInterval(uint16_t& minimum, uint16_t& maximum);
+
+    // 現在のコネクションインターバル値の取得
+    void getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum);
+
+    // 設定変更の応答を取得
+    ToioCoreConfigurationResponse getConfigurationResponse();
 
     // モーター制御 (引数の値をそのまま送信するローレベルのメソッド)
     void controlMotor(bool ldir, uint8_t lspeed, bool rdir, uint8_t rspeed, uint16_t duration = 0);

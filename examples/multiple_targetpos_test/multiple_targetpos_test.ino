@@ -1,16 +1,15 @@
 /* ----------------------------------------------------------------
   m5stack-toio - multiple_targetpos_test.ino
 
-  https://github.com/kenichi84 
+  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
 
   --------------------------------------------------------------
   This sample sketch was tested on an M5Stack Atom S3.
-  M5Unified, so it should work with other M5Stack controllers that have more than one button.
-  M5Stack Controller with more than one button.
-  Log.printf() of M5Unified is used to log the operation. Log.printf() of M5Unified. By default, it appears on the serial port.
+  This sample sketch uses M5Unified, so it should also work with other M5Stack controllers that have more than one button.
+  M5.Log.printf() of M5Unified is used for operation log. By default, operation log appears on the serial port.
 
   This is a sample sketch of connect and control a single Toio Core Cube and test motor control with multiple destinations.
 

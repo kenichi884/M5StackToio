@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.4.0 support  https://github.com/kenichi84 
+  Protocol v2.3.0 or later support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -46,6 +46,7 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_onpostureangle = nullptr;
   this->_on_id_reader = nullptr;
   this->_onmotor = nullptr;
+  this->_onconfig = nullptr;
 
   this->_event_connection_updated = false;
   this->_current_client = nullptr;
@@ -65,6 +66,8 @@ ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_event_id_data.standard = {0, 0};
   this->_event_motor_updated = false;
   this->_event_motor_response = {0x00, 0x00, 0x00};
+  this->_event_config_updated = false;
+  memset(&(this->_event_config_response), 0, sizeof(ToioCoreConfigurationResponse));
 
   client->setClientCallbacks(new ToioClientCallback(this));
 }
@@ -327,7 +330,6 @@ void ToioCore::onBattery(OnBatteryCallback cb) {
   this->_onbattery = cb;
 }
 
-
 // ---------------------------------------------------------------
 // ボタンの状態を取得
 // ---------------------------------------------------------------
@@ -566,12 +568,131 @@ void ToioCore::setMotorSpeedInformationAcquistionSettings(bool enable){
 // ---------------------------------------------------------------
 // 姿勢角検出の設定
 // ---------------------------------------------------------------
-void ToioCore::setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type ){
+void ToioCore::setPostureAngleDetectionSettings(uint8_t interval, uint8_t condition, uint8_t angle_type){
   if (!this->isConnected()) {
     return;
   }
   uint8_t data[5] = {0x1d, 0x00, angle_type, interval, condition};
   this->_char_conf->writeValue(data, 5, true);
+}
+
+// ---------------------------------------------------------------
+// シリアライズ情報の通知設定
+// ---------------------------------------------------------------
+void ToioCore::setSerializedInformationSettings(uint8_t interval, uint8_t condition){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[4] = {0x1e, 0x00, interval, condition};
+  this->_char_conf->writeValue(data, 4, true);
+}
+
+// ---------------------------------------------------------------
+// 設定イベントのコールバックをセット
+// ---------------------------------------------------------------
+void ToioCore::onConfiguration(OnConfigurationCallback cb) {
+  if (!this->isConnected()) {
+    return;
+  }
+  if(cb != nullptr){
+    this->_char_conf->registerForNotify([this](BLERemoteCharacteristic * rchar, uint8_t* data, size_t len, bool is_notify) {
+      if (!this->_current_client) {
+        return;
+      }
+      // len is 3 or 6 or 20 
+      this->_event_config_response.infoType = data[0];
+      if((data[0] == 0xf0) && (len == 20)){
+        memcpy(this->_event_config_response.serialized, &data[1], 19); 
+      } else if(len == 3) {
+        this->_event_config_response.config.reserved = data[1];
+        this->_event_config_response.config.response = data[2];
+      } else if(len == 6){
+        this->_event_config_response.interval.reserved = data[1];
+        this->_event_config_response.interval.minimum = *(uint16_t *) &data[2];
+        this->_event_config_response.interval.maximum = *(uint16_t *) &data[4];
+      }
+      //memcpy(&(this->_event_config_response), data, len);
+      this->_event_config_updated = true;
+    });
+  } else {
+    this->_char_conf->registerForNotify(nullptr);
+  }
+  this->_onconfig = cb;
+}
+
+// ---------------------------------------------------------------
+// コネクションインターバル値の変更
+// ---------------------------------------------------------------
+void ToioCore::setConnectionInterval(uint16_t minimum, uint16_t maximum){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[6] = {0x30, 0x00, 
+    (uint8_t) (0xff & minimum), (uint8_t) (minimum >> 8),
+    (uint8_t) (0xff & maximum), (uint8_t) (maximum >> 8)};
+  this->_char_conf->writeValue(data, 6, true);
+}
+
+// ---------------------------------------------------------------
+// コネクションインターバル要求値の取得
+// ---------------------------------------------------------------
+void ToioCore::getRequestedConnectionInterval(uint16_t& minimum, uint16_t& maximum){
+  minimum = 0;
+  maximum = 0;
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t sdata[2] = {0x31, 0x00};
+  this->_char_conf->writeValue(sdata, 2, true);
+  this->_wait(2000);
+  std::string rdata = this->_char_conf->readValue();
+  if ((rdata.size() == 6) && (rdata[0] == 0xb1)) {
+    minimum = *(uint16_t *) &rdata[2];
+    maximum = *(uint16_t *) &rdata[4];
+  }
+}
+
+// ---------------------------------------------------------------
+// 現在のコネクションインターバル値の取得
+// ---------------------------------------------------------------
+void ToioCore::getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum){
+  minimum = 0;
+  maximum = 0;
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t sdata[2] = {0x32, 0x00};
+  this->_char_conf->writeValue(sdata, 2, true);
+  this->_wait(2000);
+  std::string rdata = this->_char_conf->readValue();
+  if ((rdata.size() == 6) && (rdata[0] == 0xb2)) {
+    minimum = *(uint16_t *) &rdata[2];
+    maximum = *(uint16_t *) &rdata[4];
+  }
+}
+
+// ---------------------------------------------------------------
+// 設定変更の応答を取得
+// ---------------------------------------------------------------
+ToioCoreConfigurationResponse ToioCore::getConfigurationResponse(){
+  ToioCoreConfigurationResponse res = {0x00, 0x00, 0x00};
+  if (!this->isConnected()) {
+    return res;
+  }
+  std::string data = this->_char_conf->readValue();
+  res.infoType = data[0];
+  if(data.size() > 20){
+    return res;
+  }
+  if(data.size() == 6){ // connection interval settings response
+    res.interval.reserved = data[1];
+    res.interval.minimum = *(uint16_t *) &data[2];
+    res.interval.maximum = *(uint16_t *) &data[4];
+  } else {
+    res.config.reserved = data[1];
+    res.config.response = data[2];
+  }
+  return res;
 }
 
 // ---------------------------------------------------------------
@@ -716,6 +837,7 @@ ToioCoreMotorResponse ToioCore::getMotor() {
   res.response = data[2];
   return res;
 }
+
 // ---------------------------------------------------------------
 // モーター制御の応答イベントのコールバックをセット
 // ---------------------------------------------------------------
@@ -863,7 +985,6 @@ void ToioCore::_loop() {
     }
   }
   
-
   // ID読み取りセンサーイベント
   if (this->_event_id_data_updated) {
     if (this->_on_id_reader) {
@@ -877,6 +998,14 @@ void ToioCore::_loop() {
     if (this->_onmotor) {
       this->_onmotor(this->_event_motor_response);
       this->_event_motor_updated = false;
+    }
+  }
+
+  // 設定イベント
+  if (this->_event_config_updated) {
+    if (this->_onconfig) {
+      this->_onconfig(this->_event_config_response);
+      this->_event_config_updated = false;
     }
   }
 }
