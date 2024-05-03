@@ -9,7 +9,7 @@
   --------------------------------------------------------------
   This sample sketch was tested on an M5Stack Atom S3.
   This sample sketch uses M5Unified, so it should also work with other M5Stack controllers that have more than one button.
-  M5.Log.printf() of M5Unified is used for operation log. By default, operation log appears on the serial port.
+  M5Unified M5.Log.printf() is used for operation log. By default, operation log appears on the serial port.
 
   This is a sample sketch of connect and control a single Toio Core Cube and test motor control with multiple destinations.
 
