@@ -2,6 +2,13 @@ M5StackToio
 ===============
 [English](README.md)
 
+## 注意
+このブランチ(feature/esp32c6_notNimBLE)はESP32-C6(M5 nanoC6、XIAO ESP32-C6)で動作させるための試験的ものです。
+2024年8月時点でNimBLEはESP32-C6に未対応のため、NimBLEを使わずarduino-esp32のBLEスタックを使います。
+また、Arduino Core 3.0以降でないとESP32-C6に未対応のため、新しめのArduino IDEを使うか、PlatformIOでは付属のplatformio.iniを使う必要があります。
+
+---------------------------------------
+
 本ライブラリはオリジナルの https://github.com/futomi/M5StackToio で、それにToio IDの読み取り機能を追加したバージョンの https://github.com/mhama/M5StackToio をベースにBLEプロトコルバージョンv2.3.0以降対応を追加したものです。
 
 M5StackToio はソニー・インタラクティブエンタテインメント社の「[toio コア キューブ](https://toio.io/)」を操作するための [M5Stack](https://m5stack.com/) 用 Arduino ライブラリです。

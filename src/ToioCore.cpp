@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 or later support  https://github.com/kenichi884 
+  Protocol v2.4.0 support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -83,7 +83,12 @@ ToioCore::~ToioCore() {
 // アドレスを取得
 // ---------------------------------------------------------------
 std::string ToioCore::getAddress() {
-  std::string str = this->_device->getAddress().toString();
+
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  std::string str = this->_device->getAddress().toString().c_str();
+#else
+  std::string str = this->_device->getAddress().toString()
+#endif
   return std::string(str);
 }
 
@@ -91,8 +96,13 @@ std::string ToioCore::getAddress() {
 // デバイス名を取得
 // ---------------------------------------------------------------
 std::string ToioCore::getName() {
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String s = this->_device->getName();
+  return std::string(s.c_str());
+#else
   std::string str = this->_device->getName();
   return std::string(str);
+#endif
 }
 
 // ---------------------------------------------------------------
@@ -117,6 +127,7 @@ bool ToioCore::connect() {
   
   this->_event_motor_updated = false;
 
+
   // Service を取得
   BLERemoteService* service = this->_client->getService(this->_TOIO_SERVICE_UUID);
   if (service == nullptr) {
@@ -124,6 +135,9 @@ bool ToioCore::connect() {
     this->disconnect();
     return false;
   }
+
+
+
 
   // バッテリーの Characteristic を取得
   this->_char_battery = service->getCharacteristic(this->_TOIO_CHAR_UUID_BATT);
@@ -188,7 +202,6 @@ bool ToioCore::connect() {
     this->disconnect();
     return false;
   }
-
   // 300 ミリ秒待つ
   this->_wait(300);
   return true;
@@ -297,10 +310,17 @@ uint8_t ToioCore::getBatteryLevel() {
   if (!this->isConnected()) {
     return 0;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_battery->readValue();
+  if (data.length() != 1) {
+    return 0;
+  }
+#else
   std::string data = this->_char_battery->readValue();
   if (data.size() != 1) {
     return 0;
   }
+#endif
   uint8_t level = data[0];
   return level;
 }
@@ -337,10 +357,17 @@ bool ToioCore::getButtonState() {
   if (!this->isConnected()) {
     return false;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_button->readValue();
+  if (data.length() != 2) {
+    return false;
+  }
+#else
   std::string data = this->_char_button->readValue();
   if (data.size() != 2) {
     return false;
   }
+#endif
   bool state = (data[1] == 0x80) ? true : false;
   return state;
 }
@@ -381,10 +408,17 @@ ToioCoreMotionData ToioCore::getMotion() {
   if (!this->isConnected()) {
     return res;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_motion->readValue();
+  if (data.length() != 6) {
+    return res;
+  }
+#else
   std::string data = this->_char_motion->readValue();
   if (data.size() != 6) {
     return res;
   }
+#endif
   res.flat = data[1];
   res.clash = data[2];
   res.dtap = data[3];
@@ -461,9 +495,15 @@ std::string ToioCore::getBleProtocolVersion() {
   uint8_t sdata[2] = {0x01, 0x00};
   this->_char_conf->writeValue(sdata, 2, true);
   this->_wait(2000);
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String rdata = this->_char_conf->readValue();;
+  if (rdata.length() >= 3 || rdata[0] == 0x81) {
+    std::string ver = rdata.substring(2, rdata.length() - 2).c_str();
+#else
   std::string rdata = this->_char_conf->readValue();
   if (rdata.size() >= 3 || rdata[0] == 0x81) {
     std::string ver = rdata.substr(2, rdata.size() - 2);
+#endif
     return ver;
   } else {
     return empty_data;
@@ -645,8 +685,13 @@ void ToioCore::getRequestedConnectionInterval(uint16_t& minimum, uint16_t& maxim
   uint8_t sdata[2] = {0x31, 0x00};
   this->_char_conf->writeValue(sdata, 2, true);
   this->_wait(2000);
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String rdata = this->_char_conf->readValue();
+  if ((rdata.length() == 6) && (rdata[0] == 0xb1)) {
+#else
   std::string rdata = this->_char_conf->readValue();
   if ((rdata.size() == 6) && (rdata[0] == 0xb1)) {
+#endif
     minimum = *(uint16_t *) &rdata[2];
     maximum = *(uint16_t *) &rdata[4];
   }
@@ -664,8 +709,13 @@ void ToioCore::getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum
   uint8_t sdata[2] = {0x32, 0x00};
   this->_char_conf->writeValue(sdata, 2, true);
   this->_wait(2000);
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String rdata = this->_char_conf->readValue();
+  if ((rdata.length() == 6) && (rdata[0] == 0xb2)) {
+#else
   std::string rdata = this->_char_conf->readValue();
   if ((rdata.size() == 6) && (rdata[0] == 0xb2)) {
+#endif
     minimum = *(uint16_t *) &rdata[2];
     maximum = *(uint16_t *) &rdata[4];
   }
@@ -679,12 +729,21 @@ ToioCoreConfigurationResponse ToioCore::getConfigurationResponse(){
   if (!this->isConnected()) {
     return res;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_conf->readValue();
+  res.infoType = data[0];
+  if(data.length() > 20){
+    return res;
+  }
+  if(data.length() == 6){ // connection interval settings response
+#else
   std::string data = this->_char_conf->readValue();
   res.infoType = data[0];
   if(data.size() > 20){
     return res;
   }
   if(data.size() == 6){ // connection interval settings response
+#endif
     res.interval.reserved = data[1];
     res.interval.minimum = *(uint16_t *) &data[2];
     res.interval.maximum = *(uint16_t *) &data[4];
@@ -828,8 +887,13 @@ ToioCoreMotorResponse ToioCore::getMotor() {
   if (!this->isConnected()) {
     return res;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_motor->readValue();
+  if (data.length() != 3) {
+#else
   std::string data = this->_char_motor->readValue();
   if (data.size() != 3) {
+#endif
     return res;
   }
   res.controlType = data[0];
@@ -876,14 +940,24 @@ ToioCoreIDData ToioCore::getIDReaderData() {
     memset(&res, 0, sizeof(ToioCoreIDData));
     return res; // 不定値
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  String data = this->_char_id_reader->readValue();
+  if (data.length() > 0 && data[0] == 0x03 || data[0] == 0x04) {
+#else
   std::string data = this->_char_id_reader->readValue();
   if (data.size() > 0 && data[0] == 0x03 || data[0] == 0x04) {
+#endif
     // no data
     memset(&res, 0, sizeof(ToioCoreIDData));
     return res;
   }
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
+  if (!_convertBLEBytesToIDData((const uint8_t *) data.c_str(), data.length(), res)) {
+    Serial.println("id data is wrong. type=" + String((int)data[0])+ " length=" + String(data.length()));
+#else
   if (!_convertBLEBytesToIDData((const uint8_t *) data.c_str(), data.size(), res)) {
     Serial.println("id data is wrong. type=" + String((int)data[0])+ " length=" + String(data.size()));
+#endif
     return res;
   }
   return res;

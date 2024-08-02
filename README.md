@@ -2,6 +2,13 @@ M5StackToio
 ===============
 [日本語 Japanese](README_jp.md)
 
+## Note
+This branch (feature/esp32c6_notNimBLE) is experimental to run on ESP32-C6 (M5 nanoC6, XIAO ESP32-C6).
+As of August 2024, NimBLE does not support ESP32-C6, so we will use the arduino-esp32 BLE stack instead of NimBLE.
+Also, since Arduino Core 3.0 or later is not compatible with ESP32-C6, you will need to use a newer Arduino IDE or use the included platformio.ini for PlatformIO.
+
+---------------------------------------
+
 This library is based on the original https://github.com/futomi/M5StackToio and the version https://github.com/mhama/M5StackToio that adds the Toio ID reading function.
 This library is compatible with BLE protocol v2.3.0 or later.
 

@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 or later and NimBLE support  https://github.com/kenichi884 
+  Protocol v2.4.0 and NimBLE support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -15,7 +15,11 @@
 #include <Arduino.h>
 #include <string>
 #include <functional>
-#define USE_NIMBLE 1
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(USE_BLUETOOTH_CLASSIC)
+  #undef USE_NIMBLE
+#else
+  #define USE_NIMBLE 1
+#endif
 #ifdef USE_NIMBLE
 #include <NimBLEDevice.h>
 #else
