@@ -38,11 +38,6 @@
 #include <Wire.h>
 #include <Toio.h>
 
-static const uint16_t I2C_FREQ = 400000;
-static const uint8_t JOYSTICK_I2C_ADDR = 0x52;
-static const uint8_t JOYSTICK_GPIO_SDA = 21;
-static const uint8_t JOYSTICK_GPIO_SCL = 22;
-
 // ライト ON/OFF 状態
 static bool light_on = false;
 
@@ -73,6 +68,20 @@ static uint8_t CHARUMERA_DATA[CHARUMERA_LEN] = {
   56, 71, 255     // 560ms, B5
 };
 
+// Joystickのモード
+static const int addresses[] = {
+  0x5e,  // Faces Joystick
+  0x63,  // Joystick2 Unit
+  0x52   // Joystick Unit
+};
+
+enum joystick_num {
+  faces = 0,
+  joystick2,
+  joystick
+};
+int joystick_mode = -1;
+
 void displayCaptionButtonA(String caption) {
   M5.Lcd.setCursor(30, 215, 2);
   M5.Lcd.print("[" + caption + "]");
@@ -90,9 +99,9 @@ void displayCaptionButtonC(String caption) {
 
 void drawJoystick(float jx, float jy) {
   M5.Lcd.setCursor(70, 130, 2);
-  M5.Lcd.printf("X : %d  ", (int)jx);
+  M5.Lcd.printf("X : %f  ", jx);
   M5.Lcd.setCursor(70, 150, 2);
-  M5.Lcd.printf("Y : %d  ", (int)jy);
+  M5.Lcd.printf("Y : %f  ", jy);
   M5.Lcd.drawCircle(190, 150, 50, 0xffffff);
   M5.Lcd.fillCircle(190, 150, 49, 0x000000);
   M5.Lcd.drawLine(140, 150, 240, 150, 0xffffff);
@@ -119,7 +128,18 @@ void setup() {
   M5.Lcd.print("M5StackToio");
 
   // ジョイスティック利用を開始
-  Wire.begin(JOYSTICK_GPIO_SDA, JOYSTICK_GPIO_SCL, I2C_FREQ);
+  Wire.begin();
+
+  // I2Cアドレスにデバイスが存在するか確認する
+  byte error;
+  for (int i = 0; i < sizeof(addresses); i++) {
+    Wire.beginTransmission(addresses[i]);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      joystick_mode = i;
+      break;
+    }
+  }
 
   // 3 秒間 Toio Core Cube をスキャン
   M5.Lcd.setCursor(0, 50, 2);
@@ -153,22 +173,61 @@ void setup() {
 }
 
 void loop() {
+  float x, y;
+  uint8_t z;
+  float jx, jy;
+
   M5.update();
 
-  // ジョイスティックが接続されているかをチェック
-  Wire.requestFrom(JOYSTICK_I2C_ADDR, 3);
-  if (!Wire.available()) {
-    return;
+  // ジョイスティックが接続されているかをチェックしジョイスティックの状態を取得
+  switch (joystick_mode) {
+    case faces:
+      Wire.requestFrom(addresses[joystick_mode], 5);
+      if (!Wire.available()) {
+        return;
+      }
+      {
+        uint8_t adX_L = Wire.read();
+        uint8_t adX_H = Wire.read();
+        uint8_t adY_L = Wire.read();
+        uint8_t adY_H = Wire.read();
+        z = Wire.read();
+
+        y = map((float)(adX_H << 8 | adX_L), 250.0, 800.0, -100.0, 100.0) + 130.0;
+        x = map((float)(adY_H << 8 | adY_L), 250.0, 800.0, -100.0, 100.0) + 130.0;
+      }
+      break;
+    case joystick2:
+      // x,yの状態を8ビットで取得
+      Wire.beginTransmission(addresses[joystick_mode]);
+      Wire.write(0x10);
+      Wire.endTransmission(false);
+      Wire.requestFrom(addresses[joystick_mode], 2);
+      x = (float)Wire.read();
+      y = (float)Wire.read();
+
+      /// ボタンの状態を取得
+      Wire.beginTransmission(addresses[joystick_mode]);
+      Wire.write(0x20);
+      Wire.endTransmission(false);
+      z = Wire.read();
+      break;
+    case joystick:
+      Wire.requestFrom(addresses[joystick_mode], 3);
+      if (!Wire.available()) {
+        return;
+      }
+      x = (float)Wire.read();
+      y = (float)Wire.read();
+      z = Wire.read();
+      break;
+    default:
+      break;
   }
 
   // イベントを扱う場合は、必ずここで Toio オブジェクトの
   // loop() メソッドを呼び出すこと
   toio.loop();
-
-  // ジョイスティックの状態を取得
-  uint8_t x = Wire.read();
-  uint8_t y = Wire.read();
-  uint8_t z = Wire.read();
 
   // M5Stack のボタン C が押されたときの処理 (Carib)
   if (M5.BtnC.wasPressed()) {
@@ -178,10 +237,20 @@ void loop() {
   }
 
   // ジョイスティックの x/y 軸の位置を特定 (キャリブレーション済み)
-  float jy = ((float)y - (float)carib_y) * 100.0 / 120.0;
-  float jx = ((float)x - (float)carib_x) * 100.0 / 120.0;
-  float jy_sign = (jy < 0) ? -1 : 1;
-
+  switch (joystick_mode) {
+    case faces:
+      jy = ((float)y - (float)carib_y);
+      jx = ((float)x - (float)carib_x);
+      break;
+    case joystick2:
+      jy = ((float)y - (float)carib_y);
+      jx = ((float)x - (float)carib_x);
+      break;
+    case joystick:
+      jy = ((float)y - (float)carib_y) * 100.0 / 120.0;
+      jx = ((float)x - (float)carib_x) * 100.0 / 120.0;
+      break;
+  }
   // ジョイスティックの状態を画面に表示
   drawJoystick(jx, jy);
 
