@@ -33,8 +33,13 @@ class ToioClientCallback : public BLEClientCallbacks {
 // ---------------------------------------------------------------
 // コンストラクタ
 // ---------------------------------------------------------------
+#ifdef USE_NIMBLE
+ToioCore::ToioCore(BLEAdvertisedDevice* device) {
+  this->_device = device;
+#else
 ToioCore::ToioCore(BLEAdvertisedDevice& device) {
   this->_device = new BLEAdvertisedDevice(device);
+#endif
   BLEClient* client = BLEDevice::createClient();
   this->_client = client;
 

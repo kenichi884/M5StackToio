@@ -18,6 +18,7 @@
 #define USE_NIMBLE 1
 #ifdef USE_NIMBLE
 #include <NimBLEDevice.h>
+#define registerForNotify(f) subscribe(true, f)
 #else
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -333,7 +334,11 @@ class ToioCore {
   public:
     // コンストラクタ
   
+  #ifdef USE_NIMBLE
+    ToioCore(BLEAdvertisedDevice* device);
+  #else
     ToioCore(BLEAdvertisedDevice& device);
+  #endif
 
     // デストラクタ
     virtual ~ToioCore();

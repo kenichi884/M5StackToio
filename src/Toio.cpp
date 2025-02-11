@@ -32,11 +32,27 @@ std::vector<ToioCore*> Toio::scan(uint8_t duration = 3) {
   scan->setWindow(this->_BLE_SCAN_WINDOW);
 
   // スキャン開始
+#ifdef USE_NIMBLE
+NimBLEScanResults scan_res = scan->getResults(duration * 1000, false);
+#else
   BLEScanResults scan_res = scan->start(duration, false);
+#endif
   int num = scan_res.getCount();
   std::vector<ToioCore*> found_toiocore_list;
 
+
   for (int i = 0; i < num; i++) {
+#ifdef USE_NIMBLE
+      NimBLEAdvertisedDevice *device = (NimBLEAdvertisedDevice *) scan_res.getDevice(i);
+    // サービス UUID がセットされていないデバイスなら無視
+    if (!device->haveServiceUUID()) {
+      continue;
+    }
+    // サービス UUID が toio に一致しなければ無視
+    if (device->getServiceUUID().toString() != this->_TOIO_SERVICE_UUID) {
+      continue;
+    }
+#else
     BLEAdvertisedDevice device = scan_res.getDevice(i);
     // サービス UUID がセットされていないデバイスなら無視
     if (!device.haveServiceUUID()) {
@@ -46,7 +62,7 @@ std::vector<ToioCore*> Toio::scan(uint8_t duration = 3) {
     if (device.getServiceUUID().toString() != this->_TOIO_SERVICE_UUID) {
       continue;
     }
-
+#endif
     // ToioCore オブジェクトを生成
     ToioCore* toiocore = new ToioCore(device);
     found_toiocore_list.push_back(toiocore);

@@ -2,8 +2,10 @@ M5StackToio
 ===============
 [日本語 Japanese](README_jp.md)
 
+NimBLE-Arduino v2.2.x support experimental version.
+
 This library is based on the original https://github.com/futomi/M5StackToio and the version https://github.com/mhama/M5StackToio that adds the Toio ID reading function.
-This library is compatible with BLE protocol v2.3.0 or later.
+This library is compatible with BLE protocol v2.4.0 or later.
 
 M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate Sony Interactive Entertainment's "[toio Core Cube](https://toio.io/)".
 
@@ -88,7 +90,7 @@ In the Arduino IDE, search for NimBLE-Arduino in the library manager and install
 For PlatformIO, add the following line to the lib_deps option in the env: section of platformio.ini.
 ```
 kenichi884/M5StackToio
-h2zero/NimBLE-Arduino@^1.4.1
+h2zero/NimBLE-Arduino@^2.2.1
 ```
 
 In the default settings of NimBLE, the maximum number of connections that can be made is set to 3.

@@ -46,6 +46,8 @@ class Toio {
     std::map<std::string, ToioCore*> _devices;
 
   public:
+
+
     // コンストラクタ
     Toio();
 
