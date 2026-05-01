@@ -83,7 +83,7 @@ In order to reduce heap memory consumption, the BLE stack has been changed from 
 (There is a difference of about 37KB. If you use it at the same time as WiFi, you will not be able to use it unless you use NimBLE because there is not enough heap. You can also free up more memory by setting nimbleconfig.h.)
 
 Install [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) library
-
+Note: Please use NimBLE-Arduino version 1.4.3. M5StackToio v1.0.5 does not support NimBLE-Arduino version 2.x.
 In the Arduino IDE, search for NimBLE-Arduino in the library manager and install it.
 For PlatformIO, add the following line to the lib_deps option in the env: section of platformio.ini.
 ```
@@ -1645,7 +1645,7 @@ No. |  Variable name         |  Type        |  Required   |  Description
 
 ```c++
 // Move by specifying 5 target points.
-  ToioTargetPos pos[5];
+  ToioCoreTargetPos pos[5];
   pos[0].x = 250;
   pos[0].y = 250;
   pos[0].angle = 0;
