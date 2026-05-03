@@ -10,6 +10,8 @@
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
 
+  This sample sketch works with the Toio core cube's BLE protocol version v2.5.0.
+
   This sample sketch was tested on M5Stack Atom S3, Atom S3 lite, and M5Capsule.
   M5Unified, so it should also work with other M5Stack controllers with more than one button.
   This sample sketch uses M5Unified, so it should also work with other M5Stack controllers that have more than one button.
@@ -31,6 +33,8 @@
 
   --------------------------------------------------------------
 
+  このサンプルスケッチはToio core cubeのBLEプロトコルバージョンv2.5.0で動作します。
+  
   このサンプルスケッチは M5Stack Atom S3、Atom S3 lite、M5Capsuleで動作確認しました。
   M5Unifiedを使っているので、ほかのボタンが一つ以上あるM5Stack製 Controllerでも
   動作すると思います。
@@ -59,6 +63,7 @@
 #define TEST_BUTTON 1
 #define TEST_MOTION_SENSOR 1
 #define TEST_MOTOR 1
+#define TEST_POWER_OFF 1
 
 // Declare a toio object
 // Toio オブジェクト生成
@@ -191,7 +196,28 @@ void setup() {
   // LED を消灯
   M5.Log.printf("Turn off the LED\n");
   toiocore->turnOffLed();
-  delay(5000);
+  delay(3000);
+
+  // Repeated turning on and off of indicator
+  // LEDを連続的に点灯、消灯
+  uint8_t repeated_data[15] = {
+    4,                // Type of LED control (repeated turn on)
+    3,                // Repeat count
+    2,                // Number of operations
+    30, 1, 1, 0, 255, 0,  // duration 300ms, LED_num, LED_ID, R, G, B
+    30, 1, 1, 0, 0, 255   // duration 300ms, LED_num, LED_ID, R, G, B
+  };    
+  M5.Log.printf("Repeated Turn on the LED 3 times, green and blue\n");
+  toiocore->repeatedTurnOnLedRaw(repeated_data, 15);
+  delay(3000);
+
+  // Blink the indicator. (white, 100ms, 10 times)
+  // LEDをなめらかに点滅 (白色、100msで10回)
+  M5.Log.printf("Blink the LED 10 times");
+  toiocore->smoothBlinkingLed(255, 255, 255, 10, 100);
+  delay(3000);
+
+
 #endif // TEST_LED
 
 #if TEST_BATTERY
@@ -285,10 +311,18 @@ void setup() {
   // 空きヒープメモリサイズの確認
   //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
 
+#if TEST_POWER_OFF
+  // Power off 
+  // 電源を切る
+  M5.Log.printf("Power off 3 seconds later.\n");
+  toiocore->setRemotePowerOff(3);
+
+#endif
   // Disconnect the BLE connection.
   // BLE 切断
   toiocore->disconnect();
   M5.Log.printf("Disconnected\n");
+
 }
 
 void loop() {

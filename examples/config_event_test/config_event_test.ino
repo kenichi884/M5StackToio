@@ -46,7 +46,7 @@
   が表示されます。見つからなければ、再度、M5Stack ボタンのリセットボタンを
   押して再起動してください。
 
-  接続が完了すると、設定の応答ととシリアライズ情報のnotifyの受信をテストします。
+  接続が完了すると、設定の応答とシリアライズ情報のnotifyの受信をテストします。
   シリアライズ情報は設定の応答と同じcharacteristicsを使って受信します。
   設定の応答イベントを待ち受け、受信したイベント情報を シリアルポートのログに表示します。
 
@@ -204,8 +204,40 @@ void setup() {
         roll, pitch, yaw,
         bits.reserved3,
         bits.magnetStatus, bits.magnetForce); 
-    } else 
+    } else {
+      switch (resp.infoType){
+        case ResponseIDmissedNotificationSettings:
+          M5.Log.printf("ResponseIDmissedNotificationSettings ");
+          break;
+        case ResponseChangeConnectionInterval:
+          M5.Log.printf("ResponseChangeConnectionInterval ");
+          break;
+        case ResponseIDnotificationSettings:
+          M5.Log.printf("ResponseIDnotificationSettings ");
+          break;
+        case ResponseMagneticSensorSettings:
+          M5.Log.printf("ResponseMagneticSensorSettings ");
+          break;
+        case ResponseMotoroSpeedInformationAcquisitionSettings:
+          M5.Log.printf("ResponseMagneticSensorSettings ");
+          break;
+        case ResponseMuteSoundSettings:
+          M5.Log.printf("ResponseMuteSoundSettings ");
+          break;
+        case ResponsePostureAngleDetectionSettings:
+          M5.Log.printf("ResponsePostureAngleDetectionSettings ");
+          break;
+        case ResponseRemotePowerOff:
+          M5.Log.printf("ResponseRemotePowerOff ");
+          break;
+        default:
+          M5.Log.printf("Unknown configuration response ");
+          break;
+        }
+
       M5.Log.printf("set configuration %02x %02x ", resp.config.reserved, resp.config.response);
+    }
+    
 
     M5.Log.printf("\n");
   });
@@ -277,6 +309,7 @@ void setup() {
   //M5.Log.printf("esp_get_free_heap_size(): %6d\n", esp_get_free_heap_size() );
 }
 
+uint8_t mute_mode = TurnOffMute;
 void loop() {
   M5.update();
 
@@ -297,10 +330,6 @@ void loop() {
       M5.Log.printf("try connect\n");
       toiocore->connect(); // If not connected, connect. 接続していないなら接続
     }
-  // When button A of M5Stack was pressed.
-  // M5Stack のボタン A が押されたときの処理
-  } else if(M5.BtnA.wasReleased()) { 
-    M5.Log.printf("pressed\n");
   }
 
   yield();
