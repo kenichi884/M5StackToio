@@ -727,8 +727,8 @@ void ToioCore::initializeSavableSettings(){
   if (!this->isConnected()) {
     return;
   }
-  uint8_t data[1] = {0x0f};
-  this->_char_conf->writeValue(data, 1, true);
+  uint8_t data[2] = {0x0f, 0x00};
+  this->_char_conf->writeValue(data, 2, true);
 }
 
 // ---------------------------------------------------------------
