@@ -453,7 +453,7 @@ class ToioCore {
     void setMuteSoundSettings(uint8_t mute_type = TurnOffMute);
 
     // 保存した設定の初期化
-    void initializeSavableSettings();
+    void initializeSaveableSettings();
 
     // 設定変更の応答を取得
     ToioCoreConfigurationResponse getConfigurationResponse();

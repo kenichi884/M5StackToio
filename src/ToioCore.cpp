@@ -723,7 +723,7 @@ void ToioCore::setMuteSoundSettings(uint8_t mute_type){
 // ---------------------------------------------------------------
 // 保存した設定の初期化
 // ---------------------------------------------------------------
-void ToioCore::initializeSavableSettings(){
+void ToioCore::initializeSaveableSettings(){
   if (!this->isConnected()) {
     return;
   }

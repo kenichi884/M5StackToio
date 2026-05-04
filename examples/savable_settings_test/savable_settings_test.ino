@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------
-  m5stack-toio - savable_settings_test.ino
+  m5stack-toio - saveable_settings_test.ino
 
   https://github.com/kenichi884 
 
@@ -7,7 +7,7 @@
   See LICENSE file in the project root for full license information.
 
   --------------------------------------------------------------
-  This sample sketch tests the savable settings feature.
+  This sample sketch tests the saveable settings feature.
 
   This sample sketch was tested on M5Stack Atom S3.
   This sample sketch uses M5Unified, so it should also work with other M5Stack controllers that have more than one button.
@@ -72,7 +72,7 @@ ToioCore* toiocore;
 
 void setup() {
   M5.begin();
-  M5.Log.printf("M5StackToio savable_settings_test\n");
+  M5.Log.printf("M5StackToio saveable_settings_test\n");
 
   // Scan Toio Core Cubes in 3 seconds.
   // 3 秒間 Toio Core Cube をスキャン
@@ -133,10 +133,10 @@ void setup() {
     // Toio Core Cubeの機能ボタンを押したままにしておくと初期化を受け付ける。初期化されるとLEDが白色で１回点滅する。
     // Toio Core Cubeの機能ボタンを押していなければ初期化はされない。
     delay(2000);
-    M5.Log.printf("To initalize savable settings, Press Toio core cubes's fuction button.\n");
+    M5.Log.printf("To initalize saveable settings, Press Toio core cubes's fuction button.\n");
     delay(2000);
-    toiocore->initializeSavableSettings();
-    M5.Log.printf("initialize savable command sended.\n");
+    toiocore->initializeSaveableSettings();
+    M5.Log.printf("initialize saveable command sended.\n");
   
   }
 
