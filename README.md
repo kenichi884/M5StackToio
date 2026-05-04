@@ -1,4 +1,4 @@
-M5StackToio
+M5StackToio v.1.0.5
 ===============
 [日本語 Japanese](README_jp.md)
 
@@ -30,6 +30,8 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
   * [`stopSound()` method (Stop playing)](#ToioCore-stopSound-method)
   * [`turnOnLed()` method (Turning the indicator on)](#ToioCore-turnOnLed-method)
   * [`turnOffLed()` method (Turning the indicator off)](#ToioCore-turnOffLed-method)
+  * [`repeatedTurnOnLedRaw()` method(Repeated turn on off the indicator)](#ToioCore-repeatedTurnOnLedRaw-method)
+  * [`smoothBlinkingLed()` method(Smooth blinking the indicator)](#ToioCore-smoothBlinkingLed-method)
   * [`getBatteryLevel()` method (Get the battery level)](#ToioCore-getBatteryLevel-method)
   * [`onBattery()` method (Set the battery level event callback)](#ToioCore-onBattery-method)
   * [`getButtonState()` method (Get the button state)](#ToioCore-getButtonState-method)
@@ -49,12 +51,15 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
   * [`setConnectionInterval()` method (Request to change connection interval)](#ToioCore-setConnectionInterval-method)
   * [`getRequestedConnectionInterval()` method (Obtaining the requested connection interval value)](#ToioCore-getRequestedConnectionInterval-method)
   * [`getAcctualConnectionInterval()` method (Obtaining the actual connection interval value)](#ToioCore-getAcctualConnectionInterval-method)
+  * [`setRemotePowerOff()` method(Request remote power off)](#ToioCore-setRemotePowerOff-method)
+  * [`setMuteSoundSettings()` method(Set the sound mute settings)](#ToioCore-setMuteSoundSettings-method)
+  * [`initializeSaveableSettings()` method(Initialise the saveable settings)](#ToioCore-initializeSaveableSettings-method)
   * [`getConfigurationResponse()` method (Get the responses change configurations)](#ToioCore-getConfigurationResponse-method)
   * [`controlMotor()` method (control the motors)](#ToioCore-controlMotor-method)
   * [`drive()` method (drive toio core cube like a car)](#ToioCore-drive-method)
   * [`controlMotorWithTarget()` method (Motor control with target specified (single target))](#ToioCore-controlMotorWithTarget-method)
   * [`controlMotorWithMultipleTargets()` method (Motor control with multiple targets)](#ToioCore-controlMotorWithMultipleTargets-method)
-  * [` controlMotorWithAcceleration()` method (Motor control with acceleration specified)](#ToioCore-controlMotorWithAcceleration-method)
+  * [`controlMotorWithAcceleration()` method (Motor control with acceleration specified)](#ToioCore-controlMotorWithAcceleration-method)
   * [`onMotor()` method (Set motor event(reached to target, motor speed infomation) callback)](#ToioCore-onMotor-method)
   * [`getIDReaderData()` method (Get the identification sensor information (position on mat, etc)](#ToioCore-getIDReaderData-method)
   * [`onIDReaderData()` method (Set identification sensor iformation event callback)](#ToioCore-onIDReaderData-method)
@@ -67,9 +72,9 @@ M5StackToio is an Arduino library for [M5Stack](https://m5stack.com/) to operate
 ---------------------------------------
 ## <a id="Setup-IDE">1. Setup development environment</a>
 
-M5Stack development environment is required to use this library. Please follow the instructions on the M5Stack official website to set up your development environment.
+M5Stack Arduino development environment is required to use this library. Please follow the instructions on the M5Stack official website to set up your development environment.
 
-* [M5Stack Docs - Arduino IDE Development](https://docs.m5stack.com/#/en/arduino/arduino_development)
+* [Setting Up the Arduino Development Environment](https://docs.m5stack.com/en/arduino/arduino_ide)
 
 Requires installation of USB driver, Arduino-IDE installation, Boards Manager settings, board installation, board selection, and M5Stack Library installation.
 
@@ -88,7 +93,7 @@ In the Arduino IDE, search for NimBLE-Arduino in the library manager and install
 For PlatformIO, add the following line to the lib_deps option in the env: section of platformio.ini.
 ```
 kenichi884/M5StackToio
-h2zero/NimBLE-Arduino@^1.4.1
+h2zero/NimBLE-Arduino@1.4.3
 ```
 
 In the default settings of NimBLE, the maximum number of connections that can be made is set to 3.
@@ -654,6 +659,68 @@ none
 
 ```c++
 toiocore->turnOffLed();
+```
+
+
+### <a id="ToioCore-repeatedTurnOnLedRaw-method">x `repeatedTurnOnLedRaw()` method (Repeated turn on off the indicator)</a>
+
+This controls the indicator on the Toio Core Cube to turn on and off continuously.
+
+#### prototype declaration
+
+```c++
+void  repeatedTurnOnLedRaw(uint8_t* data, size_t length);
+```
+
+#### argument
+
+No. | Variable name |  Type        |  Required   |  Description
+:---|:---------|:-----------|:-------|:-------------
+1   | `data`   | `uint8_t*` | x     | Byte string of data to write
+2   | `length` | `size_t`   | x     | Number of bytes to write
+
+#### code sample
+
+The following sample code will light up an indicator in green and blue three times at 300 millisecond intervals.
+```c++
+uint8_t repeated_data[15] = {
+  4,                // Type (LED control repeated turn on)
+  3,                // Number of repetitions
+  2,                // Number of operations
+  30, 1, 1, 0, 255, 0,  // operation duration 300ms, LED_num, LED_ID, R, G, B
+  30, 1, 1, 0, 0, 255   // operation duration 300ms, LED_num, LED_ID, R, G, B
+};    
+toiocore->repeatedTurnOnLedRaw(repeated_data, 15);
+```
+
+### <a id="ToioCore-smoothBlinkingLed-method">x `smoothBlinkingLed()` method (Smooth blinking the indicator)</a>
+
+This makes the indicator on the Toio Core Cube blink smoothly.
+
+#### prototype declaration
+
+```c++
+void  smoothBlinkingLed(uint8_t r, uint8_t g, uint8_t b, uint8_t times = 0, uint16_t duration = 0);
+```
+
+#### argument
+
+No. | Variable name |  Type        |  Required   |  Description
+:---|:---------|:-----------|:-------|:-------------
+1   | `r`   | `uint8_t` | x     | Value for red(`0` - `255`)
+2   | `g`   | `uint8_t` | x     | Value for green(`0` - `255`)
+3   | `b`   | `uint8_t` | x     | Value for blue(`0` - `255`)
+4   | `times` | `uint8_t` | &nbsp; | Number of repetitions  (`0` - `255`) 0 means blinking indefinitely. If not specified, it defaults to 0.
+5   | `duration` | `uint16_t` | &nbsp; |  Blinking cycle(ms) (`100` - `2550`) 0 means unlimited blinking; if not specified, blinks for 100ms.
+
+Note: The blinking cycle is specified in milliseconds, but it can only be specified in increments of 10ms.
+
+#### code sample
+
+The following sample code will make an indicator blink white 10 times with a 100ms interval.
+```c++
+  M5.Log.printf("Blink the LED 10 times");
+  toiocore->smoothBlinkingLed(255, 255, 255, 10, 100);
 ```
 
 ### <a id="ToioCore-getBatteryLevel-method">x `getBatteryLevel()` method (Get battery level)</a>
@@ -1457,6 +1524,91 @@ No. |  Variable name   |  Type                 |  Required   |  Description
 For the obtaining the actual connection interval value, see [toio Core Cube communication specifications](https://toio.github.io/toio-spec/en/docs/ble_configuration#obtaining-the-actual-connection-interval-value-).
 
 
+### <a id="ToioCore-setRemotePowerOff-method">x `setRemotePowerOff()` metho (Request remote power off)</a>
+
+Request remote power off the Toio Core Cube.
+
+#### prototype declaration
+
+```c++
+void setRemotePowerOff(uint8_t time_until_poweroff = 0);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `time_until_poweroff`     | `uint8_t`     |   | Time until power is turned off (0-255 in seconds). 0 means power is turned off immediately.
+
+#### code sample
+
+The following code is a sample that shuts off the Toio Core Cube after 3 seconds.
+
+```c++
+  toiocore->setRemotePowerOff(3);
+```
+
+### <a id="ToioCore-setMuteSoundSettings-method">x `setMuteSoundSettings()` method (Set the sound mute settings)</a>
+
+This method mutes the speaker.
+
+This method will only accept mute or unmute settings if a function button on the Toio Core Cube is pressed when it is called.
+
+#### prototype declaration
+
+```c++
+enum ToioMuteSoundType {
+  TurnOffMute = 0x00,         // Unmute
+  MuteAllSounds = 0x01,       // Mute all sounds
+  MuteSystemSoundsOnly = 0x02 // Mute system sound only
+};
+
+void setMuteSoundSettings(uint8_t mute_type = TurnOffMute);
+```
+
+#### argument
+
+No. |  Variable name   |  Type                 |  Required   |  Description
+:---|:-----------|:-----------|:-------|:-------------
+1   | `mute_type`     | `uint8_t`     |   | One of the following: TurnOffMute, MuteAllSounds, or MuteSystemSoundsOnly. If not specified, TurnOffMute is used.
+
+#### code sample
+
+The following code is a sample code that mutes all sounds.
+
+This setting will not be accepted unless a function button on the Toio Core Cube is pressed.
+
+```c++
+  toiocore->setMuteSoundSettings(MuteAllSounds); 
+```
+
+### <a id="ToioCore-initializeSaveableSettings-method">x `initializeSaveableSettings()` method (Initialise the saveable settings)</a>
+
+This resets the saved settings. The speaker mute setting will also be reset to its default state (unmute).
+
+This method will not reset saved settings unless a function button on the Toio Core Cube is pressed when it is called.。
+
+#### prototype declaration
+
+```c++
+void initializeSaveableSettings();
+```
+
+#### argument
+
+none
+
+#### code sample
+
+The following code is a sample code that resets saved settings.
+
+The reset of saved settings will not be accepted unless a function button on the Toio Core Cube is pressed.
+
+```c++
+  toiocore->sinitializeSaveableSettings(); 
+```
+
+
 ### <a id="ToioCore-getConfigurationResponse-method">x `getConfigurationResponse()` method (Get response configuration settings)</a>
 
 Gets the result response of setting method calls such as setFlatThreshold().
@@ -2043,6 +2195,25 @@ This is a sketch that receives configuration responses and serialization informa
 Once the connection with Toio Core Cube is complete, test the settings response and serialization information notification reception.
 Listens for configuration response events and displays the received configuration response and serialization information in the serial port log.
 
+### `remote_poweroff_test`
+
+This sketch tests the remote power-off function. It allows you to power off multiple Toio Core Cubes.
+
+After establishing a connection with the Toio Core Cubes, pressing and holding 
+the M5Stack's A button for 2 seconds will sequentially set the LED color for each connected Toio Core Cube, 
+and then send a power-off command after 3 seconds, disconnecting the connection.
+
+### `savable_settings_test`
+
+This sketch tests the savable settings function.
+
+After connecting to the Toio Core Cube, it sends a command to initialize the settings after 2 seconds.
+If you hold down the function button on the Toio Core Cube before then, it will accept the initialization.
+If you do not want to initialize, do not press the function button.
+
+After that, pressing and holding the A button on the M5Stack for 2 seconds will set the sound mute setting.
+Again, the sound mute setting will not be accepted unless you keep the function button on the Toio Core Cube pressed.
+
 ---------------------------------------
 Below is futomi-san's original sample code
 In order to display the operation log on the M5Stack screen, please use the specified M5Stack controller product that has a screen.
@@ -2107,7 +2278,10 @@ While connected to BLE, pressing the z-axis of the joystick will play Charmelo. 
   * kenichi884 version　Add Reaadme.md (nglish translated). Change struct ToioCoreIDData and struct ToioCoreMotorResponse definition (use union).
 
 * v1.0.4. (2024-05-03)
-  * kenichi884 version　Support BLE protocol version 2.4.0 features(Get posture angles in quaternions, high-precision Euler angles, Set BLE connection interval). Support the notification of serialized information.
+  * kenichi884 version　Supports BLE protocol version 2.4.0 features(Get posture angles in quaternions, high-precision Euler angles, Set BLE connection interval). Support the notification of serialized information.
+
+* v1.0.5. (2024-05-05)
+  * kenichi884 version  Supports BLE protocol version 2.5.0 features (remote power off, smooth LED blinking, speaker mute setting, reset of savable settings). Also supports the previously overlooked LED repeat blinking function.
 ---------------------------------------
 ## <a id="References">References</a>
 
