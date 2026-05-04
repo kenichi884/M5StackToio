@@ -2280,7 +2280,7 @@ While connected to BLE, pressing the z-axis of the joystick will play Charmelo. 
 * v1.0.4. (2024-05-03)
   * kenichi884 version　Supports BLE protocol version 2.4.0 features(Get posture angles in quaternions, high-precision Euler angles, Set BLE connection interval). Support the notification of serialized information.
 
-* v1.0.5. (2024-05-05)
+* v1.0.5. (2026-05-05)
   * kenichi884 version  Supports BLE protocol version 2.5.0 features (remote power off, smooth LED blinking, speaker mute setting, reset of savable settings). Also supports the previously overlooked LED repeat blinking function.
 ---------------------------------------
 ## <a id="References">References</a>
