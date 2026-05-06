@@ -28,6 +28,8 @@ playSoundEffect	KEYWORD2
 stopSound	KEYWORD2
 turnOnLed	KEYWORD2
 turnOffLed	KEYWORD2
+repeatedTurnOnLedRaw	KEYWORD2
+smoothBlinkingLed	KEYWORD2
 getBatteryLevel	KEYWORD2
 onBattery	KEYWORD2
 getButtonState	KEYWORD2
@@ -48,6 +50,9 @@ onConfiguration	KEYWORD2
 setConnectionInterval	KEYWORD2
 getRequestedConnectionInterval	KEYWORD2
 getAcctualConnectionInterval	KEYWORD2
+setRemotePowerOff	KEYWORD2
+setMuteSoundSettings    KEYWORD2
+initializeSaveableSettings    KEYWORD2
 getConfigurationResponse	KEYWORD2
 controlMotor	KEYWORD2
 drive	KEYWORD2

@@ -139,7 +139,7 @@ void setup() {
   // Scan Toio Core Cubes in 5 seconds.
   // 5 秒間 Toio Core Cube をスキャン
   M5.Log.printf("Scanning your toio core...\n");
-  std::vector<ToioCore*> toiocore_list = toio.scan(3);
+  std::vector<ToioCore*> toiocore_list = toio.scan(5);
 
   // Exit if could not found any cubes.
   // 見つからなければ終了
@@ -169,7 +169,7 @@ void setup() {
     M5.Log.printf("%u: Connected.\n", i);
     // Set Connection event callback.
    // Connection イベントのコールバックをセット
-   M5.Log.printf("set cannection callback %u %p\n", i, toiocore[i]);
+   M5.Log.printf("set connection callback %u %p\n", i, toiocore[i]);
     toiocore[i]->onConnection([i](bool state) {
       M5.Log.printf("%u: Connection Event %s\n", i, state ? "Connected   " : "Disconnected");
     });

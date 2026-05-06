@@ -4,7 +4,7 @@
   Copyright (c) 2020 Futomi Hatano. All right reserved.
   Original https://github.com/futomi
   Toio ID read support   https://github.com/mhama
-  Protocol v2.3.0 or later and NimBLE support  https://github.com/kenichi884 
+  Protocol v2.5.0 or later and NimBLE support  https://github.com/kenichi884 
 
   Licensed under the MIT license.
   See LICENSE file in the project root for full license information.
@@ -205,8 +205,15 @@ enum ToioCorePostureAngleType {
   AngleTypeHighPrecisionEuller = 0x03
 };
 
+enum ToioMuteSoundType {
+  TurnOffMute = 0x00,
+  MuteAllSounds = 0x01,
+  MuteSystemSoundsOnly = 0x02
+};
+
 enum ToioCoreConfigrationType {
   ResponseBLEProtocolVersion = 0x81,
+  ResponseSaveableSettings = 0x8f,
   ResponseIDnotificationSettings = 0x98,
   ResponseIDmissedNotificationSettings = 0x99,
   ResponseMagneticSensorSettings = 0x9b,
@@ -216,13 +223,15 @@ enum ToioCoreConfigrationType {
   ResponseChangeConnectionInterval = 0xb0,
   ResponseObtainRequestedConnectionInterval = 0xb1,
   ResponseObtainActualConnectionInterval = 0xb2,
+  ResponseMuteSoundSettings = 0xb3,
+  ResponseRemotePowerOff = 0xb4,
   SerializedData = 0xf0
 };
 
-// 設定変更の応答 infoType =  0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+// 設定変更の応答 infoType =  0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0 0xb4
 struct ToioCoreSetConfigurationResponse {
     uint8_t reserved;
-    uint8_t response;
+    uint8_t response; // 0x00 OK  others NG
 };
 
 // コネクションインターバル値 infoType =  0xb1 or 0xb2
@@ -236,7 +245,7 @@ struct ToioCoreConnectionIntervalSettings {
 struct ToioCoreConfigurationResponse {
   uint8_t infoType;
   union {
-    ToioCoreSetConfigurationResponse config; // 設定応答 infoType = 0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0
+    ToioCoreSetConfigurationResponse config; // 設定応答 OK/NG infoType = 0x98 0x99 0x9b 0x9c 0x9d 0x9e 0xb0 0xb4
     ToioCoreConnectionIntervalSettings interval; // コネクションインターバル値 infoType =  0xb1 or 0xb2
     uint8_t serialized[19]; // シリアライズ情報   info Type = 0xf0
   }; 
@@ -371,6 +380,12 @@ class ToioCore {
     // LED 消灯
     void turnOffLed();
 
+    // LED 連続的な点灯、消灯
+    void repeatedTurnOnLedRaw(uint8_t* data, size_t length);
+
+    // LED なめらかな点滅
+    void smoothBlinkingLed(uint8_t r, uint8_t g, uint8_t b, uint8_t times = 0, uint16_t duration = 0);
+
     // バッテリーレベルを取得
     uint8_t getBatteryLevel();
 
@@ -430,6 +445,15 @@ class ToioCore {
 
     // 現在のコネクションインターバル値の取得
     void getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum);
+
+    // リモート電源オフの要求
+    void setRemotePowerOff(uint8_t time_until_poweroff = 0);
+
+    // スピーカー消音の設定
+    void setMuteSoundSettings(uint8_t mute_type = TurnOffMute);
+
+    // 保存した設定の初期化
+    void initializeSaveableSettings();
 
     // 設定変更の応答を取得
     ToioCoreConfigurationResponse getConfigurationResponse();

@@ -200,7 +200,7 @@ void loop() {
   } else if(M5.BtnA.wasReleased()) { 
     M5.Log.printf("press/release A btn\n");
     // Move Toio Core Cubes to next positions.
-    // 中心位置に移動した後、複数の億票位置を縫うように移動
+    // 中心位置に移動した後、複数の目標位置を縫うように移動
     toiocore->controlMotorWithTarget(0, 5, 0, 80, 0, MAT_CENTER_X, MAT_CENTER_Y, 0);
     delay(10);
     toiocore->controlMotorWithMultipleTargets(1, 10, 0, 50, 0, 0, MAX_TOIOCORE_TARGET_NUM, targetPos);

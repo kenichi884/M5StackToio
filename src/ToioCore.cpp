@@ -287,8 +287,33 @@ void ToioCore::turnOnLed(uint8_t r, uint8_t g, uint8_t b) {
 // LED 消灯
 // ---------------------------------------------------------------
 void ToioCore::turnOffLed() {
-  this->turnOnLed(0x00, 0x00, 0x00);
+  //this->turnOnLed(0x00, 0x00, 0x00);
+  uint8_t data[1] = {0x01};
+  this->_char_light->writeValue(data, 1, true);
 }
+
+// ---------------------------------------------------------------
+// LED 連続的な点灯、消灯
+// ---------------------------------------------------------------
+void ToioCore::repeatedTurnOnLedRaw(uint8_t* data, size_t length){
+  if (!this->isConnected()) {
+    return;
+  }
+  this->_char_light->writeValue(data, length, true);
+}
+
+// ---------------------------------------------------------------
+// LED なめらかな点滅
+// ---------------------------------------------------------------
+void ToioCore::smoothBlinkingLed(uint8_t r, uint8_t g, uint8_t b, uint8_t repeat_times, uint16_t duration)
+{
+  uint8_t dur_data = (float)duration / 10;
+  if (dur_data < 10)  dur_data = 10;
+  uint8_t data[8] = {0x70, repeat_times,  0x01, 0x01, dur_data, r, g, b};
+  this->_char_light->writeValue(data, 8, true);
+}
+
+
 
 // ---------------------------------------------------------------
 // バッテリーレベルを取得
@@ -669,6 +694,41 @@ void ToioCore::getAcctualConnectionInterval(uint16_t& minimum, uint16_t& maximum
     minimum = *(uint16_t *) &rdata[2];
     maximum = *(uint16_t *) &rdata[4];
   }
+}
+
+// ---------------------------------------------------------------
+// リモート電源オフの要求
+// ---------------------------------------------------------------
+void ToioCore::setRemotePowerOff(uint8_t time_until_poweroff){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[3] = {0x34, 0x00, time_until_poweroff};
+  this->_char_conf->writeValue(data, 3, true);
+}
+
+// ---------------------------------------------------------------
+// スピーカー消音の設定
+// ---------------------------------------------------------------
+void ToioCore::setMuteSoundSettings(uint8_t mute_type){
+  if (!this->isConnected()) {
+    return;
+  }
+  if(mute_type > MuteSystemSoundsOnly) 
+    mute_type = MuteSystemSoundsOnly;
+  uint8_t data[3] = {0x33, 0x00, mute_type};
+  this->_char_conf->writeValue(data, 3, true);
+}
+
+// ---------------------------------------------------------------
+// 保存した設定の初期化
+// ---------------------------------------------------------------
+void ToioCore::initializeSaveableSettings(){
+  if (!this->isConnected()) {
+    return;
+  }
+  uint8_t data[2] = {0x0f, 0x00};
+  this->_char_conf->writeValue(data, 2, true);
 }
 
 // ---------------------------------------------------------------
